@@ -1,7 +1,7 @@
 # Bespa Road Condition Survey App — field capture (Phase 1)
 
-Offline-first web app for Department of Feeder Roads condition surveys. It captures what the
-crew sees and exports a workbook the Master Estimator prices on the desktop. **It produces no
+Offline-first web app created by Dr. Kwasi Osafo Ampadu for Department of Feeder Roads for condition surveys. It captures what the
+crew sees and exports a workbook to the Master Estimator for producing a BOQ on the desktop. It is basically a Field Survey Form to capture data for further processing with an Excel file "BESPA_Master_Estimator_2026_V2". **The App does produces not produce a
 bill and holds no rates** — pricing, taking-off and the BOQ stay on the desktop.
 
 ## Files
