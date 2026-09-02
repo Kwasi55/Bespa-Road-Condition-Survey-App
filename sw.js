@@ -1,5 +1,5 @@
-const C="bespa-survey-v2";
-const ASSETS=["./","./index.html","./manifest.webmanifest","./icon.svg"];
+const C="bespa-survey-v5";
+const ASSETS=["./","./index.html","./manifest.webmanifest","./icon.png"];
 self.addEventListener("install",e=>{self.skipWaiting();
   e.waitUntil(caches.open(C).then(c=>c.addAll(ASSETS).catch(()=>{})));});
 self.addEventListener("activate",e=>{e.waitUntil(
