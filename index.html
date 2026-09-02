@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1B3A5C">
+<link rel="manifest" href="manifest.webmanifest">
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Bespa Road Condition Survey App</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ink:#14181D; --dim:#5A646E; --faint:#8B95A0;
+  --paper:#FFFFFF; --sunk:#EEF1F4; --edge:#D6DDE4; --hair:#E7ECF1;
+  --accent:#1B3A5C; --accent-soft:#E4EDF6; --on-accent:#FFFFFF;
+  --live:#C2521B; --live-soft:#FBEDE4;
+  --ok:#0E6B45; --warn:#8A5A00; --stop:#B3261E;
+  --g:#2E7D4F; --f:#8A7A12; --p:#B5721A; --vp:#B3261E; --nr:#5B2478;
+  --r:10px; --tap:52px;
+  --f-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#E8EDF2; --dim:#9AA6B2; --faint:#6C7883;
+  --paper:#141A20; --sunk:#1D242C; --edge:#2E3841; --hair:#232B33;
+  --accent:#7FB0DA; --accent-soft:#1B2A38; --on-accent:#0B1116;
+  --live:#E8874C; --live-soft:#2A1D14;
+  --ok:#4FBF8B; --warn:#D2A23A; --stop:#F0736A;
+  --g:#5BB37E; --f:#C8B446; --p:#E0994A; --vp:#F0736A; --nr:#B78BD8;
+}}
+:root[data-theme="dark"]{
+  --ink:#E8EDF2; --dim:#9AA6B2; --faint:#6C7883;
+  --paper:#141A20; --sunk:#1D242C; --edge:#2E3841; --hair:#232B33;
+  --accent:#7FB0DA; --accent-soft:#1B2A38; --on-accent:#0B1116;
+  --live:#E8874C; --live-soft:#2A1D14;
+  --ok:#4FBF8B; --warn:#D2A23A; --stop:#F0736A;
+  --g:#5BB37E; --f:#C8B446; --p:#E0994A; --vp:#F0736A; --nr:#B78BD8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sunk);color:var(--ink);font-family:var(--f-sans);
+     font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+#app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--paper);
+     display:flex;flex-direction:column;box-shadow:0 0 0 1px var(--hair)}
+@media(min-width:520px){#app{min-height:100vh;border-left:1px solid var(--hair);border-right:1px solid var(--hair)}}
+
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:20;background:var(--accent);color:var(--on-accent);
+       padding:10px 14px 0;display:flex;flex-direction:column;gap:8px}
+.brand{font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.62;font-weight:600;
+  margin-bottom:-4px}
+.hrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.road{font-size:13px;font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.code{font-family:var(--f-mono);font-size:11px;opacity:.75;white-space:nowrap}
+.chwrap{display:flex;align-items:flex-end;gap:10px}
+.ch{font-family:var(--f-mono);font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1;
+    font-variant-numeric:tabular-nums}
+.chsub{font-size:11px;opacity:.8;padding-bottom:3px}
+.gps{margin-left:auto;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+     padding:4px 8px;border:1px solid rgba(255,255,255,.35);border-radius:99px;opacity:.85}
+.gps.on{background:var(--live);border-color:var(--live);opacity:1}
+#strip{height:34px;width:100%;display:block;margin-bottom:-1px}
+
+/* ---------- nav ---------- */
+nav{display:flex;background:var(--accent);border-top:1px solid rgba(255,255,255,.16)}
+nav button{flex:1;appearance:none;background:none;border:0;color:var(--on-accent);opacity:.65;
+  font:inherit;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 2px 10px;
+  cursor:pointer;border-bottom:2px solid transparent}
+nav button[aria-current="true"]{opacity:1;border-bottom-color:var(--live);font-weight:600}
+nav button:focus-visible{outline:2px solid #fff;outline-offset:-3px}
+
+/* ---------- body ---------- */
+main{flex:1;padding:14px;display:flex;flex-direction:column;gap:14px}
+.view{display:flex;flex-direction:column;gap:14px}
+.view[hidden]{display:none}
+h2{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);
+   margin:0;font-weight:600}
+.panel{border:1px solid var(--edge);border-radius:var(--r);background:var(--paper)}
+.panel>h3{margin:0;padding:10px 12px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--dim);border-bottom:1px solid var(--hair);font-weight:600}
+.pad{padding:12px;display:flex;flex-direction:column;gap:12px}
+label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--dim);font-weight:500}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--paper);
+  border:1px solid var(--edge);border-radius:8px;padding:11px 10px;min-height:var(--tap);width:100%}
+input[type=number]{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{
+  outline:2px solid var(--accent);outline-offset:1px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{appearance:none;font:inherit;font-size:13px;font-weight:500;cursor:pointer;
+  min-height:44px;padding:0 13px;border-radius:99px;border:1px solid var(--edge);
+  background:var(--paper);color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip .k{font-family:var(--f-mono);font-size:12px;font-weight:600}
+
+/* buttons */
+button.act{appearance:none;font:inherit;font-weight:600;cursor:pointer;min-height:var(--tap);
+  border-radius:var(--r);border:1px solid var(--accent);background:var(--accent);
+  color:var(--on-accent);padding:0 16px;width:100%;font-size:15px}
+button.act.ghost{background:var(--paper);color:var(--accent)}
+button.act.live{background:var(--live);border-color:var(--live);color:#fff}
+button.act.small{min-height:42px;font-size:13px;width:auto;padding:0 12px}
+button.act:disabled{opacity:.42;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* stretch list */
+.slist{display:flex;flex-direction:column}
+.sitem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:10px 12px;border-bottom:1px solid var(--hair);cursor:pointer;background:none;
+  border-left:0;border-right:0;border-top:0;font:inherit;text-align:left;color:inherit;width:100%}
+.sitem:last-child{border-bottom:0}
+.sitem .rng{font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--dim);white-space:nowrap}
+.sitem .desc{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cond{width:10px;height:26px;border-radius:3px;flex:none}
+.badge{font-family:var(--f-mono);font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;
+  background:var(--sunk);color:var(--dim)}
+
+/* open stretch banner */
+.open{border:1px solid var(--live);background:var(--live-soft);border-radius:var(--r);
+  padding:10px 12px;display:flex;align-items:center;gap:10px}
+.open .dot{width:9px;height:9px;border-radius:99px;background:var(--live);flex:none;
+  animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@media(prefers-reduced-motion:reduce){.open .dot{animation:none}}
+.open .t{font-size:13px;font-weight:600}
+.open .m{font-family:var(--f-mono);font-size:12px;color:var(--dim);margin-left:auto}
+
+/* checks */
+.check{display:grid;grid-template-columns:auto 1fr;gap:9px;padding:9px 12px;border-bottom:1px solid var(--hair);font-size:13px;align-items:start}
+.check:last-child{border-bottom:0}
+.mark{font-family:var(--f-mono);font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.mark.ok{background:var(--accent-soft);color:var(--ok)}
+.mark.warn{background:var(--accent-soft);color:var(--warn)}
+.mark.stop{background:var(--accent-soft);color:var(--stop)}
+
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:13px}
+.kv dt{color:var(--dim)}
+.kv dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.note{font-size:12px;color:var(--dim);line-height:1.5}
+.note strong{color:var(--ink)}
+.flag{color:var(--live);font-weight:700}
+.empty{padding:22px 14px;text-align:center;color:var(--faint);font-size:13px}
+.thumb{width:100%;border-radius:8px;border:1px solid var(--edge);display:block}
+.sample{background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;padding:7px 12px;border-radius:var(--r);
+  border:1px solid var(--edge)}
+table.mini{width:100%;border-collapse:collapse;font-size:12px}
+table.mini th{text-align:left;font-weight:600;color:var(--dim);font-size:11px;
+  text-transform:uppercase;letter-spacing:.05em;padding:6px 8px;border-bottom:1px solid var(--edge)}
+table.mini td{padding:7px 8px;border-bottom:1px solid var(--hair);font-family:var(--f-mono);
+  font-variant-numeric:tabular-nums}
+table.mini td:first-child,table.mini th:first-child{font-family:var(--f-sans)}
+.scroll{overflow-x:auto}
+footer{padding:16px 14px 26px;color:var(--faint);font-size:11px;line-height:1.6;border-top:1px solid var(--hair)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">Bespa Road Condition Survey</div>
+    <div class="hrow">
+      <div class="road" id="hRoad">—</div>
+      <div class="code" id="hCode"></div>
+    </div>
+    <div class="chwrap">
+      <div class="ch" id="hCh">0+000</div>
+      <div class="chsub">chainage</div>
+      <button class="gps" id="gpsBtn" type="button">GPS off</button>
+    </div>
+    <canvas id="strip" height="34"></canvas>
+    <nav>
+      <button type="button" data-v="survey" aria-current="true">Survey</button>
+      <button type="button" data-v="points">Points</button>
+      <button type="button" data-v="setup">Setup</button>
+      <button type="button" data-v="export">Export</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ============ SURVEY ============ -->
+    <section class="view" id="v-survey">
+      <div id="sampleTag" class="sample">Example road loaded — Osubeng Jn to Osubeng. Start a new road in Setup.</div>
+
+      <div class="panel">
+        <h3>Chainage</h3>
+        <div class="pad">
+          <div class="grid2">
+            <label>Now at (m)<input type="number" id="chNow" step="1" min="0"></label>
+            <label>Step (m)<input type="number" id="chStep" step="5" min="1" value="50"></label>
+          </div>
+          <div class="row">
+            <button class="act ghost small" type="button" id="chBack">− step</button>
+            <button class="act ghost small" type="button" id="chFwd">+ step</button>
+          </div>
+          <p class="note">GPS measures distance travelled along the road and is an aid, not an authority — correct it here whenever you pass a known chainage.</p>
+        </div>
+      </div>
+
+      <div id="openBox"></div>
+
+      <div class="panel">
+        <h3>What is true along this stretch</h3>
+        <div class="pad">
+          <label>Surface condition
+            <div class="chips" id="condChips"></div>
+          </label>
+          <label>Vegetation
+            <div class="chips" id="vegChips"></div>
+          </label>
+          <div class="chips" id="toggleChips"></div>
+          <div class="grid2">
+            <label>Ditch left<select id="ditchL"></select></label>
+            <label>Ditch right<select id="ditchR"></select></label>
+          </div>
+          <div class="grid2">
+            <label>U-drain left (cm)<select id="udL"></select></label>
+            <label>U-drain right (cm)<select id="udR"></select></label>
+          </div>
+          <div class="grid2">
+            <label>Raise road: fill (cm)<input type="number" id="raiseFill" step="5" min="0"></label>
+            <label>Cut to widen (cm)<input type="number" id="cutH" step="5" min="0"></label>
+          </div>
+          <div class="grid2">
+            <label>Cut width L+R (m)<input type="number" id="cutW" step="0.5" min="0"></label>
+            <label>Fill to widen (cm)<input type="number" id="fillH" step="5" min="0"></label>
+          </div>
+          <div class="grid2">
+            <label>Fill width L+R (m)<input type="number" id="fillW" step="0.5" min="0"></label>
+            <label>Scour checks<select id="scour"></select></label>
+          </div>
+          <label>Scour check spacing (m)<input type="number" id="scourSp" step="5" min="0"></label>
+          <label>Note<input type="text" id="sNote" placeholder="optional"></label>
+          <button class="act live" type="button" id="endBtn">End stretch here</button>
+          <p class="note">The next stretch starts automatically at this chainage, carrying these settings forward. Change only what changes.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Stretches recorded</h3>
+        <div class="slist" id="slist"></div>
+      </div>
+    </section>
+
+    <!-- ============ POINTS ============ -->
+    <section class="view" id="v-points" hidden>
+      <div class="panel">
+        <h3>Add at current chainage</h3>
+        <div class="pad">
+          <label>Type<select id="pType"></select></label>
+          <div id="culvFields" class="grid2" hidden>
+            <label>Family<select id="pFamily"></select></label>
+            <label>Cells<select id="pCells"></select></label>
+            <label>Size<input type="text" id="pSize" placeholder="900 or 3x3"></label>
+            <label>Length (m)<input type="number" id="pLen" step="0.5" min="0" value="10"></label>
+            <label style="grid-column:1/-1">Orientation<select id="pOrient"></select></label>
+          </div>
+          <label id="qtyWrap" hidden>Quantity<input type="number" id="pQty" step="0.1" min="0"></label>
+          <label>Photo<input type="file" id="pPhoto" accept="image/*" capture="environment"></label>
+          <img id="pPreview" class="thumb" hidden alt="Photo of the point item just recorded">
+          <label>Note<input type="text" id="pNote" placeholder="optional"></label>
+          <button class="act" type="button" id="addPt">Add point here</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Point items</h3>
+        <div class="slist" id="plist"></div>
+      </div>
+    </section>
+
+    <!-- ============ SETUP ============ -->
+    <section class="view" id="v-setup" hidden>
+      <div class="panel">
+        <h3>Road</h3>
+        <div class="pad">
+          <label>Road name<input type="text" id="mName"></label>
+          <div class="grid2">
+            <label>Road code<input type="text" id="mCode"></label>
+            <label>Date<input type="date" id="mDate"></label>
+          </div>
+          <div class="grid2">
+            <label>Region<input type="text" id="mRegion"></label>
+            <label>District<input type="text" id="mDistrict"></label>
+          </div>
+          <label>Surveyed by<input type="text" id="mBy"></label>
+          <div class="row">
+            <button class="act ghost small" type="button" id="newRoad">Start a new road</button>
+            <button class="act ghost small" type="button" id="loadSample">Reload example</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Form E — treatment rules</h3>
+        <div class="pad">
+          <p class="note">What the surveyor <strong>saw</strong> goes on the stretch. What is <strong>done</strong> about it is written once here. Agree these with the design engineer before the survey starts.</p>
+          <div class="scroll"><table class="mini" id="rulesTable"></table></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Form F — road data</h3>
+        <div class="pad">
+          <p class="note">A <span class="flag">!</span> marks a template figure not yet confirmed for this road. Overhaul and haulage alone routinely move a bill by a quarter.</p>
+          <div id="paramList" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EXPORT ============ -->
+    <section class="view" id="v-export" hidden>
+      <div class="panel">
+        <h3>Checks</h3>
+        <div id="checks"></div>
+      </div>
+      <div class="panel">
+        <h3>Survey summary</h3>
+        <div class="pad"><dl class="kv" id="summary"></dl></div>
+      </div>
+      <div class="panel">
+        <h3>Hand over to the Master Estimator</h3>
+        <div class="pad">
+          <button class="act" type="button" id="dlXlsx">Export survey workbook (.xlsx)</button>
+          <button class="act ghost" type="button" id="dlJson">Export raw data + photos (.json)</button>
+          <p class="note">The workbook carries Forms A to F laid out exactly as they sit in the Master Estimator. On the desktop, open both files, copy each form's data block and paste it into the matching sheet — the estimator does the rest. Nothing here produces a bill: pricing, taking-off and the BOQ stay on the desktop under an engineer's eye.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Bespa Road Condition Survey App, for the Department of Feeder Roads. Works offline; everything is stored on this
+    device until you export. Chainages are metres. Blank means nothing recorded.
+  </footer>
+</div>
+<script>
+"use strict";
+/* ------------------------------------------------------------------ codes */
+const VEG=[["EB","Existing bush"],["GB","Grass bush"],["SB","Savannah bush"],["LB","Light bush"],["TB","Thick bush"]];
+const DITCH=[["","—"],["CL","CL  clean out"],["RE","RE  re-excavate"],["EC","EC  excavate new"]];
+const UD=[["","—"],["45","450"],["60","600"],["75","750"],["90","900"]];
+const COND=[["G","Good"],["F","Fair"],["P","Poor"],["VP","Very poor"],["NR","No road"]];
+const CONDCOL={G:"var(--g)",F:"var(--f)",P:"var(--p)",VP:"var(--vp)",NR:"var(--nr)"};
+const PTYPES=["PR_CULVERT","EX_CULVERT","JN_CULVERT","EX_BRIDGE","PR_BRIDGE","GULLY","TURNOUT_L","TURNOUT_R","PITCHING"];
+const QTY_TYPES={GULLY:"m³",TURNOUT_L:"m",TURNOUT_R:"m",PITCHING:"m²"};
+const TOGGLES=[["town","Township"],["trapL","Trap. drain L"],["trapR","Trap. drain R"],
+               ["kerbL","Kerb L"],["kerbR","Kerb R"],["retL","Ret. wall L"],["retR","Ret. wall R"]];
+const RULES0=[["G","Good — shape and camber sound, light maintenance only","BLADE",null,null,null,null,null],
+ ["F","Fair — camber lost in places, some potholing","RESHAPE",10,15,"Y","Y","Y"],
+ ["P","Poor — badly deformed, potholed, camber gone","RESHAPE",15,15,"Y","Y","Y"],
+ ["VP","Very poor — impassable in rain, gravel lost","SCARIFY",15,15,"Y","Y","Y"],
+ ["NR","No road — new alignment or total reconstruction","SCARIFY",15,20,"Y","Y","Y"]];
+const SECTIONS={5:"CROSS-SECTION",11:"PAVEMENT",16:"SURFACING DESIGN RATES",24:"HAULAGE DISTANCES",
+                29:"AGGREGATE YIELD FACTORS",34:"ROAD FURNITURE"};
+const PARAMS=[
+ [6,"","Carriageway width",7,"m","","P_CW"],[7,"","Shoulder width (one side)",1,"m","Formation width = CW + 2×SW, computed","P_SW"],
+ [8,"","Existing carriageway width",4,"m","","P_ExtCW"],[9,"","Width for primer seal",8,"m","","P_PrimeW"],
+ [10,"","Width of sealing",7,"m","","P_SealW"],
+ [12,"","Sub-base thickness",0.15,"m","E_Rules sets it per stretch in cm","P_SubbaseT"],
+ [13,"","Base thickness",0.15,"m","","P_BaseT"],
+ [14,"!","Overhaul distance, sub-base",31,"km","Borrow pit to site, less the 1 km free haul","P_OH_Sub"],
+ [15,"!","Overhaul distance, base",40,"km","Quarry to site, less the 1 km free haul","P_OH_Base"],
+ [17,"","Primer seal binder rate",1.4,"l/m²","","P_PrimeRate"],[18,"","First seal binder rate",1.3,"l/m²","","P_Seal1Rate"],
+ [19,"","Second seal binder rate",1.2,"l/m²","","P_Seal2Rate"],[20,"","Binder fraction of primer",0.84,"-","Balance is cutter oil","P_BinderPct"],
+ [21,"","Cutter-oil fraction of primer",0.16,"-","Binder + cutter must come to 1.00","P_CutterPct"],
+ [22,"","10 mm chipping coverage",120,"m²/m³","","P_Chip10"],[23,"","14 mm chipping coverage",100,"m²/m³","","P_Chip14"],
+ [25,"!","Sand (fine aggregate)",15,"km","","P_HaulSand"],[26,"!","Coarse aggregate",25,"km","","P_HaulCoarse"],
+ [27,"!","Chippings",60,"km","","P_HaulChip"],[28,"!","Fill material",2,"km","","P_HaulFill"],
+ [30,"!","Fine agg. per m³ lean concrete",0.58,"m³/m³","C10/40","P_FineLean"],
+ [31,"!","Coarse agg. per m³ lean concrete",0.92,"m³/m³","C10/40","P_CoarseLean"],
+ [32,"!","Fine agg. per m³ structural conc.",0.55,"m³/m³","C20/20 – C30/20","P_FineStr"],
+ [33,"!","Coarse agg. per m³ struct. conc.",0.88,"m³/m³","C20/20 – C30/20","P_CoarseStr"],
+ [35,"!","Traffic signs per km (each type)",10,"nr/km","Three types are billed, so this is ×3","P_SignsPerKm"],
+ [36,"!","STOP line per km",5,"m/km","","P_StopPerKm"],[37,"!","Speed ramps per km",1,"nr/km","","P_RampsPerKm"],
+ [38,"!","Lane separation line factor",0.6,"m/m","of sealed length","P_LaneLineF"],
+ [39,"!","Centre line factor",0.4,"m/m","","P_CentreLnF"],[40,"!","Edge line factor",2,"m/m","both edges","P_EdgeLnF"],
+ [41,"!","Pedestrian crossing factor",2,"m/km","","P_PedXF"]];
+
+/* ------------------------------------------------------------- persistence */
+const KEY="dfr-survey-v1";
+let DB=null;
+function idb(){return new Promise(res=>{try{
+  const r=indexedDB.open(KEY,1);
+  r.onupgradeneeded=()=>r.result.createObjectStore("kv");
+  r.onsuccess=()=>res(r.result); r.onerror=()=>res(null);
+}catch(e){res(null)}});}
+async function save(){
+  const j=JSON.stringify(S);
+  try{ if(!DB) DB=await idb();
+    if(DB){await new Promise((ok,no)=>{const t=DB.transaction("kv","readwrite");
+      t.objectStore("kv").put(j,"state"); t.oncomplete=ok; t.onerror=no;}); return;} }catch(e){}
+  try{localStorage.setItem(KEY,j)}catch(e){}
+}
+async function load(){
+  try{ if(!DB) DB=await idb();
+    if(DB){const v=await new Promise(ok=>{const t=DB.transaction("kv","readonly");
+      const q=t.objectStore("kv").get("state"); q.onsuccess=()=>ok(q.result); q.onerror=()=>ok(null);});
+      if(v) return JSON.parse(v);} }catch(e){}
+  try{const v=localStorage.getItem(KEY); if(v) return JSON.parse(v);}catch(e){}
+  return null;
+}
+
+/* -------------------------------------------------------------- the state */
+function blankState(){
+  return {name:"",code:"",region:"",district:"",by:"",date:new Date().toISOString().slice(0,10),
+    rules:JSON.parse(JSON.stringify(RULES0)),
+    params:Object.fromEntries(PARAMS.map(p=>[p[6],p[3]])),
+    ch:0, step:50, stretches:[], points:[], open:null, sample:false};
+}
+function newOpen(from,seed){
+  const base={from:from,cond:"",veg:"",town:false,trapL:false,trapR:false,kerbL:false,kerbR:false,
+    retL:false,retR:false,ditchL:"",ditchR:"",udL:"",udR:"",raiseFill:"",cutH:"",cutW:"",
+    fillH:"",fillW:"",scour:"",scourSp:"",note:""};
+  if(seed) for(const k in base) if(k!=="from"&&k!=="note") base[k]=seed[k];
+  return base;
+}
+let S=blankState();
+
+/* --------------------------------------------------------------- sample */
+function sampleState(){
+  const s=blankState();
+  s.name="Osubeng Jn - Osubeng"; s.code="ER-KWS-009"; s.region="Eastern Region";
+  s.district="Kwahu South"; s.by="Dr. Ampadu"; s.date="2026-08-05"; s.sample=true;
+  const mk=(from,to,o)=>Object.assign(newOpen(from,null),{to:to,cond:"P",veg:"GB",
+    ditchL:"RE",ditchR:"RE"},o||{});
+  s.stretches=[
+    mk(0,1200,{}),
+    mk(1200,1800,{cutH:120,cutW:4}),
+    mk(1800,4400,{}),
+    mk(4400,5000,{veg:"LB",fillH:60,fillW:4}),
+    mk(5000,7000,{veg:"LB"}),
+    mk(7000,8000,{veg:"LB",ditchL:"",ditchR:"",udL:"60",udR:"60"})
+  ];
+  s.stretches.forEach(x=>{x.ovrS2="N";});
+  s.points=[
+    {ch:500,type:"PR_CULVERT",family:"PC",cells:2,size:"900",len:10,orient:"Skew",qty:"",note:"",photo:null},
+    {ch:1500,type:"PR_CULVERT",family:"PC",cells:3,size:"1200",len:12,orient:"Right Angle",qty:"",note:"",photo:null},
+    {ch:5000,type:"PR_CULVERT",family:"BC",cells:2,size:"3x3",len:12,orient:"Right Angle",qty:"",note:"",photo:null}
+  ];
+  s.params.P_OH_Sub=6; s.params.P_OH_Base=9; s.params.P_SignsPerKm=2; s.params.P_RampsPerKm=0.25;
+  s.ch=8000;
+  return s;
+}
+
+/* -------------------------------------------------------------- helpers */
+const $=id=>document.getElementById(id);
+const fmt=m=>{m=Math.max(0,Math.round(m||0));return Math.floor(m/1000)+"+"+String(m%1000).padStart(3,"0");};
+const num=v=>{const n=parseFloat(v);return isNaN(n)?"":n;};
+const roadEnd=()=>Math.max(0,...S.stretches.map(s=>s.to||0),...S.points.map(p=>p.ch||0));
+function opt(sel,list,val){sel.innerHTML="";list.forEach(([v,t])=>{const o=document.createElement("option");
+  o.value=v;o.textContent=t;sel.appendChild(o);});sel.value=val==null?"":String(val);}
+</script>
+<script>
+"use strict";
+/* ---------------------------------------------------------- XLSX writer
+   Store-only ZIP + minimal SpreadsheetML, written by hand so the app has
+   no dependency and works with no signal.                              */
+const CRCT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;
+  for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
+function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=CRCT[(c^u8[i])&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;}
+const te=new TextEncoder();
+function zip(files){
+  const parts=[],cd=[];let off=0;
+  const dosTime=0x9B00, dosDate=0x5A21;            // fixed 2025-01-01 12:00
+  for(const f of files){
+    const name=te.encode(f.name), data=f.data, c=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true);
+    lh.setUint16(8,0,true); lh.setUint16(10,dosTime,true); lh.setUint16(12,dosDate,true);
+    lh.setUint32(14,c,true); lh.setUint32(18,data.length,true); lh.setUint32(22,data.length,true);
+    lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer),name,data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true);
+    ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true); ch.setUint16(12,dosTime,true);
+    ch.setUint16(14,dosDate,true); ch.setUint32(16,c,true); ch.setUint32(20,data.length,true);
+    ch.setUint32(24,data.length,true); ch.setUint16(28,name.length,true);
+    ch.setUint32(42,off,true);
+    cd.push(new Uint8Array(ch.buffer),name);
+    off+=30+name.length+data.length;
+  }
+  let cdLen=0; cd.forEach(p=>cdLen+=p.length);
+  const eo=new DataView(new ArrayBuffer(22));
+  eo.setUint32(0,0x06054b50,true); eo.setUint16(8,files.length,true); eo.setUint16(10,files.length,true);
+  eo.setUint32(12,cdLen,true); eo.setUint32(16,off,true);
+  const all=parts.concat(cd,[new Uint8Array(eo.buffer)]);
+  let n=0; all.forEach(p=>n+=p.length);
+  const out=new Uint8Array(n); let q=0; all.forEach(p=>{out.set(p,q);q+=p.length;});
+  return out;
+}
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function colL(n){let s="";while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=(n-m-1)/26;}return s;}
+function sheetXml(rows){
+  let x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+  rows.forEach((cells,ri)=>{
+    if(!cells||!cells.length) return;
+    let r='<row r="'+(ri+1)+'">',any=false;
+    cells.forEach((v,ci)=>{
+      if(v===null||v===undefined||v==="") return;
+      any=true; const ref=colL(ci+1)+(ri+1);
+      if(typeof v==="number"&&isFinite(v)) r+='<c r="'+ref+'"><v>'+v+'</v></c>';
+      else r+='<c r="'+ref+'" t="inlineStr"><is><t xml:space="preserve">'+esc(v)+'</t></is></c>';
+    });
+    if(any) x+=r+'</row>';
+  });
+  return te.encode(x+'</sheetData></worksheet>');
+}
+function xlsx(sheets){                       // sheets: [{name, rows}]
+  const files=[];
+  let ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+    '<Default Extension="xml" ContentType="application/xml"/>'+
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>';
+  sheets.forEach((s,i)=>{ct+='<Override PartName="/xl/worksheets/sheet'+(i+1)+
+    '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';});
+  files.push({name:"[Content_Types].xml",data:te.encode(ct+'</Types>')});
+  files.push({name:"_rels/.rels",data:te.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>')});
+  let wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '+
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>';
+  let rl='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+  sheets.forEach((s,i)=>{
+    wb+='<sheet name="'+esc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>';
+    rl+='<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>';
+    files.push({name:"xl/worksheets/sheet"+(i+1)+".xml",data:sheetXml(s.rows)});
+  });
+  files.push({name:"xl/workbook.xml",data:te.encode(wb+'</sheets></workbook>')});
+  files.push({name:"xl/_rels/workbook.xml.rels",data:te.encode(rl+'</Relationships>')});
+  return zip(files);
+}
+
+/* ------------------------------------------------- survey -> form sheets */
+function merged(pick){                      // collapse consecutive identical stretches
+  const out=[];
+  for(const s of S.stretches){
+    const v=pick(s), prev=out[out.length-1];
+    if(prev && JSON.stringify(prev.v)===JSON.stringify(v) && prev.to===s.from){prev.to=s.to;continue;}
+    out.push({from:s.from,to:s.to,v:v});
+  }
+  return out.filter(r=>r.v.some(x=>x!==""&&x!==null&&x!==undefined));
+}
+const YN=b=>b?"Y":"";
+function formRows(){
+  const A=merged(s=>[YN(s.town),s.veg,num(s.raiseFill),num(s.cutH),num(s.cutW),num(s.fillH),num(s.fillW)]);
+  const B=merged(s=>[s.ditchL,s.ditchR,s.udL?Number(s.udL):"",s.udR?Number(s.udR):"",
+                     YN(s.trapL),YN(s.trapR),YN(s.kerbL),YN(s.kerbR),num(s.scour),num(s.scourSp),
+                     YN(s.retL),YN(s.retR)]);
+  const C=merged(s=>[s.cond,s.ovrTreat||"",num(s.ovrSub),num(s.ovrBase),s.ovrPrime||"",s.ovrS1||"",s.ovrS2||""]);
+  return {A:A,B:B,C:C};
+}
+function buildWorkbook(){
+  const {A,B,C}=formRows(), sh=[];
+  sh.push({name:"README",rows:[
+    ["CONDITION SURVEY  —  captured in the field"],
+    ["Department of Feeder Roads.  Hand this file to the Master Estimator on the desktop."],
+    [],
+    ["Road name",S.name],["Road code",S.code],["Region",S.region],["District",S.district],
+    ["Surveyed by",S.by],["Date of survey",S.date],
+    ["Road length (m)",roadEnd()],["Stretches",S.stretches.length],["Point items",S.points.length],
+    [],
+    ["HOW TO LOAD THIS"],
+    ["1","Open this file and the Master Estimator side by side."],
+    ["2","For each of A_Corridor, B_Drainage, C_Pavement and D_Points: select the data block from row 5 down, copy, and paste into the same sheet of the estimator at row 5."],
+    ["3","Do the same for E_Rules (rows 5-9) and for the Value column of F_Road_Data."],
+    ["4","Type the road name, code, region and district on 00_Project. The road length is measured for you."],
+    ["5","Read 90_Checks. Every test must say OK before the bill is issued."],
+    [],
+    ["Chainages are in METRES."],
+    ["This file records what was seen. It is not an estimate and carries no rates."]]});
+  sh.push({name:"A_Corridor",rows:[["FORM A  —  CORRIDOR, CLEARING AND EARTHWORKS"],[],[],
+    ["From","To","Township Y/N","Vegetation","Raise road: fill (cm)","Cut to widen (cm)",
+     "Cut width L+R (m)","Fill to widen (cm)","Fill width L+R (m)","Notes"],
+    ...A.map(r=>[r.from,r.to,...r.v,""])]});
+  sh.push({name:"B_Drainage",rows:[["FORM B  —  DRAINAGE"],[],[],
+    ["From","To","Ditch L","Ditch R","U-drain L (cm)","U-drain R (cm)","Trap. drain L","Trap. drain R",
+     "Kerb L","Kerb R","Scour checks","Scour spacing (m)","Ret. wall L","Ret. wall R","Notes"],
+    ...B.map(r=>[r.from,r.to,...r.v,""])]});
+  sh.push({name:"C_Pavement",rows:[["FORM C  —  PAVEMENT AND SURFACING"],[],[],
+    ["From","To","Surface condition","Treatment (override)","Sub-base cm (ovr)","Base cm (ovr)",
+     "Prime (ovr)","Seal 1 (ovr)","Seal 2 (ovr)","Notes"],
+    ...C.map(r=>[r.from,r.to,...r.v,""])]});
+  sh.push({name:"D_Points",rows:[["FORM D  —  POINT ITEMS"],[],[],
+    ["Chainage","Type","Family","Cells","Size","Length (m)","Orientation","Quantity","Notes"],
+    ...S.points.slice().sort((a,b)=>a.ch-b.ch).map(p=>[p.ch,p.type,p.family||"",p.cells||"",
+      p.size||"",num(p.len),p.orient||"",num(p.qty),p.note||""])]});
+  sh.push({name:"E_Rules",rows:[["FORM E  —  TREATMENT RULES"],[],[],
+    ["Condition","What it looks like","Treatment","Sub-base (cm)","Base (cm)","Primer seal","First seal","Second seal"],
+    ...S.rules]});
+  const F=[["FORM F  —  ROAD DATA"],
+    ["Values copied into 00_Project. A ! marks a template figure not yet confirmed for this road."],[],
+    ["Confirm?","Parameter","Value","Unit","Note","","Name"]];
+  const maxR=41; for(let r=5;r<=maxR;r++) F[r-1]=F[r-1]||[];
+  for(const k in SECTIONS) F[Number(k)-1]=[SECTIONS[k]];
+  PARAMS.forEach(p=>{F[p[0]-1]=[p[1],p[2],S.params[p[6]],p[4],p[5],"",p[6]];});
+  sh.push({name:"F_Road_Data",rows:F});
+  return xlsx(sh);
+}
+function download(bytes,name,mime){
+  const b=new Blob([bytes],{type:mime}), u=URL.createObjectURL(b), a=document.createElement("a");
+  a.href=u; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(u);a.remove();},1500);
+}
+const slug=()=>(S.name||"survey").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,"");
+</script>
+<script>
+"use strict";
+/* ------------------------------------------------------------------- UI */
+function chips(host,list,get,set,keyed){
+  host.innerHTML="";
+  list.forEach(([v,t])=>{
+    const b=document.createElement("button");
+    b.type="button"; b.className="chip"; b.setAttribute("aria-pressed",String(get()===v));
+    b.innerHTML=keyed?'<span class="k">'+v+'</span>'+t:t;
+    b.onclick=()=>{set(get()===v?"":v);renderStretchPanel();draw();save();};
+    host.appendChild(b);
+  });
+}
+function renderToggles(){
+  const host=$("toggleChips"); host.innerHTML="";
+  const o=S.open||{};
+  TOGGLES.forEach(([k,t])=>{
+    const b=document.createElement("button");
+    b.type="button"; b.className="chip"; b.setAttribute("aria-pressed",String(!!o[k]));
+    b.textContent=t;
+    b.onclick=()=>{o[k]=!o[k];renderToggles();save();};
+    host.appendChild(b);
+  });
+}
+function renderStretchPanel(){
+  const o=S.open||newOpen(S.ch,null);
+  chips($("condChips"),COND,()=>o.cond,v=>o.cond=v,true);
+  chips($("vegChips"),VEG,()=>o.veg,v=>o.veg=v,true);
+  renderToggles();
+  opt($("ditchL"),DITCH,o.ditchL); opt($("ditchR"),DITCH,o.ditchR);
+  opt($("udL"),UD,o.udL); opt($("udR"),UD,o.udR);
+  opt($("scour"),[["","—"],["1","1  one side"],["2","2  both sides"]],o.scour);
+  ["raiseFill","cutH","cutW","fillH","fillW","scourSp"].forEach(k=>$(k).value=o[k]===""?"":o[k]);
+  $("sNote").value=o.note||"";
+  ["ovrTreat","ovrSub","ovrBase","ovrPrime","ovrS1","ovrS2"].forEach(k=>{const el=$(k);if(el)el.value=o[k]||"";});
+  $("openBox").innerHTML='<div class="open"><span class="dot"></span>'+
+    '<span class="t">Stretch open from '+fmt(o.from)+'</span>'+
+    '<span class="m">'+Math.max(0,Math.round(S.ch-o.from))+' m</span></div>';
+}
+function renderStretchList(){
+  const host=$("slist");
+  if(!S.stretches.length){host.innerHTML='<div class="empty">No stretches yet. Set what you can see, walk to where it changes, then tap <strong>End stretch here</strong>.</div>';return;}
+  host.innerHTML="";
+  S.stretches.slice().reverse().forEach((s)=>{
+    const i=S.stretches.indexOf(s);
+    const b=document.createElement("button"); b.type="button"; b.className="sitem";
+    const bits=[];
+    if(s.veg)bits.push(s.veg);
+    if(s.ditchL||s.ditchR)bits.push("ditch "+(s.ditchL||"–")+"/"+(s.ditchR||"–"));
+    if(s.udL||s.udR)bits.push("U-drain "+(s.udL||"–")+"/"+(s.udR||"–"));
+    if(s.cutH)bits.push("cut "+s.cutH+"cm");
+    if(s.fillH)bits.push("fill "+s.fillH+"cm");
+    if(s.town)bits.push("township");
+    b.innerHTML='<span class="cond" style="background:'+(CONDCOL[s.cond]||"var(--edge)")+'"></span>'+
+      '<span><span class="rng">'+fmt(s.from)+' → '+fmt(s.to)+'</span><br>'+
+      '<span class="desc">'+(bits.join(" · ")||"nothing recorded")+'</span></span>'+
+      '<span class="badge">'+(s.cond||"—")+'</span>';
+    b.onclick=()=>{ if(confirm("Reopen this stretch for editing? It will be removed from the list and its settings loaded back in."))
+      {S.open=Object.assign({},s); delete S.open.to; S.stretches.splice(i,1); renderAll(); save();} };
+    host.appendChild(b);
+  });
+}
+function renderPointList(){
+  const host=$("plist");
+  if(!S.points.length){host.innerHTML='<div class="empty">No point items yet.</div>';return;}
+  host.innerHTML="";
+  S.points.slice().sort((a,b)=>a.ch-b.ch).forEach(p=>{
+    const d=document.createElement("div"); d.className="sitem";
+    const what=p.type==="PR_CULVERT"?(p.cells+"/"+p.size+" "+p.family+", "+p.len+" m "+p.orient)
+      :(p.qty!==""&&p.qty!=null?p.qty+" "+(QTY_TYPES[p.type]||""):"");
+    d.innerHTML='<span class="cond" style="background:var(--accent)"></span>'+
+      '<span><span class="rng">'+fmt(p.ch)+'</span><br><span class="desc">'+p.type.replace(/_/g," ")+
+      (what?" · "+what:"")+'</span></span>'+
+      '<button type="button" class="act ghost small" aria-label="Remove point at '+fmt(p.ch)+'">Remove</button>';
+    d.querySelector("button").onclick=()=>{S.points.splice(S.points.indexOf(p),1);renderAll();save();};
+    host.appendChild(d);
+  });
+}
+function renderSetup(){
+  $("mName").value=S.name; $("mCode").value=S.code; $("mRegion").value=S.region;
+  $("mDistrict").value=S.district; $("mBy").value=S.by; $("mDate").value=S.date;
+  const t=$("rulesTable");
+  t.innerHTML='<tr><th>Cond</th><th>Treatment</th><th>Sub</th><th>Base</th><th>Pr</th><th>S1</th><th>S2</th></tr>';
+  S.rules.forEach((r,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML='<td>'+r[0]+'</td>'+[2,3,4,5,6,7].map(c=>
+      '<td><input data-r="'+i+'" data-c="'+c+'" value="'+(r[c]==null?"":r[c])+
+      '" style="min-height:38px;padding:5px 6px;font-size:14px" aria-label="'+r[0]+' column '+c+'"></td>').join("");
+    t.appendChild(tr);
+  });
+  t.querySelectorAll("input").forEach(inp=>inp.onchange=()=>{
+    const v=inp.value.trim(); S.rules[+inp.dataset.r][+inp.dataset.c]=v===""?null:(isNaN(+v)?v.toUpperCase():+v); save();});
+  const host=$("paramList"); host.innerHTML="";
+  let sec=null;
+  PARAMS.forEach(p=>{
+    const s=Object.keys(SECTIONS).map(Number).filter(r=>r<p[0]).pop();
+    if(SECTIONS[s]!==sec){sec=SECTIONS[s];const h=document.createElement("h2");h.textContent=sec;host.appendChild(h);}
+    const l=document.createElement("label");
+    l.innerHTML=(p[1]?'<span class="flag">! </span>':'')+p[2]+(p[4]?' ('+p[4]+')':'');
+    const i=document.createElement("input"); i.type="number"; i.step="any"; i.value=S.params[p[6]];
+    i.onchange=()=>{S.params[p[6]]=parseFloat(i.value); save(); renderChecks();};
+    l.appendChild(i); host.appendChild(l);
+  });
+}
+
+/* --------------------------------------------------------- line diagram */
+function draw(){
+  const c=$("strip"), w=c.clientWidth||360; c.width=w*devicePixelRatio; c.height=34*devicePixelRatio;
+  const g=c.getContext("2d"); g.scale(devicePixelRatio,devicePixelRatio); g.clearRect(0,0,w,34);
+  const end=Math.max(roadEnd(),S.ch,1000), X=m=>4+(w-8)*(m/end);
+  const cs=getComputedStyle(document.documentElement);
+  g.fillStyle="rgba(255,255,255,.18)"; g.fillRect(4,14,w-8,6);
+  S.stretches.forEach(s=>{
+    g.fillStyle=cs.getPropertyValue(String(CONDCOL[s.cond]||"").replace(/var\(|\)/g,"").trim())||"#889";
+    const x0=X(s.from), w0=Math.max(1,X(s.to)-X(s.from)-1.5);   // 1.5px gap shows each stretch
+    g.fillRect(x0,12,w0,10);
+  });
+  if(S.open){g.fillStyle=cs.getPropertyValue("--live").trim();
+    g.fillRect(X(S.open.from),12,Math.max(1,X(S.ch)-X(S.open.from)),10);}
+  S.points.forEach(p=>{const x=X(p.ch);g.fillStyle="#fff";g.fillRect(x-1,6,2,22);});
+  g.fillStyle="rgba(255,255,255,.85)"; g.fillRect(X(S.ch)-1,3,2,28);
+}
+
+/* -------------------------------------------------------------- checks */
+function checkList(){
+  const out=[], end=roadEnd();
+  const add=(k,t)=>out.push([k,t]);
+  if(!S.name.trim()) add("stop","Road name is empty — 00_Project needs it.");
+  else add("ok","Road identified: "+S.name+(S.code?" ("+S.code+")":""));
+  if(end<=0) add("stop","No road recorded yet.");
+  else add("ok","Road length "+(end/1000).toFixed(3)+" km, measured from the furthest chainage.");
+  let prev=0, gaps=0;
+  S.stretches.forEach(s=>{ if(Math.abs(s.from-prev)>0.5) gaps++; prev=s.to; });
+  add(gaps?"stop":"ok", gaps? gaps+" gap or overlap between stretches — the road is not continuous."
+    : S.stretches.length+" stretches, continuous from 0+000 with no gaps or overlaps.");
+  const noCond=S.stretches.filter(s=>!s.cond).length;
+  add(noCond?"warn":"ok", noCond? noCond+" stretch(es) have no surface condition — pavement will be blank there."
+    : "Every stretch carries a surface condition.");
+  const badCulv=S.points.filter(p=>p.type==="PR_CULVERT"&&(!p.family||!p.size||!p.len)).length;
+  add(badCulv?"stop":"ok", badCulv? badCulv+" proposed culvert(s) missing family, size or length — they will never be priced."
+    : S.points.filter(p=>p.type==="PR_CULVERT").length+" proposed culverts, each with family, size and length.");
+  const badQty=S.points.filter(p=>QTY_TYPES[p.type]&&(p.qty===""||p.qty==null)).length;
+  add(badQty?"stop":"ok", badQty? badQty+" gully, turnout or pitching item(s) with no quantity."
+    : "Every measured point item carries a quantity.");
+  const beyond=S.points.filter(p=>p.ch>end+0.5).length;
+  if(beyond) add("warn",beyond+" point item(s) lie beyond the last surveyed stretch — check for a typo.");
+  const b=+S.params.P_BinderPct, cu=+S.params.P_CutterPct;
+  add(Math.abs(b+cu-1)<1e-6?"ok":"stop", Math.abs(b+cu-1)<1e-6
+    ? "Binder and cutter oil come to 1.00." : "Binder ("+b+") + cutter oil ("+cu+") = "+(b+cu)+", not 1.00.");
+  const unconf=PARAMS.filter(p=>p[1]==="!"&&S.params[p[6]]===p[3]).length;
+  add(unconf?"warn":"ok", unconf? unconf+" of 17 flagged constants are still at the template figure — confirm them with the design engineer."
+    : "All 17 flagged constants have been set for this road.");
+  return out;
+}
+function renderChecks(){
+  const host=$("checks"); host.innerHTML="";
+  checkList().forEach(([k,t])=>{
+    const d=document.createElement("div"); d.className="check";
+    d.innerHTML='<span class="mark '+k+'">'+(k==="ok"?"OK":k==="warn"?"CHECK":"FIX")+'</span><span>'+t+'</span>';
+    host.appendChild(d);
+  });
+  const end=roadEnd(), dl=S.stretches.reduce((a,s)=>a+((s.ditchL?1:0)+(s.ditchR?1:0))*(s.to-s.from),0);
+  const ud=S.stretches.reduce((a,s)=>a+((s.udL?1:0)+(s.udR?1:0))*(s.to-s.from),0);
+  const byFam={}; S.points.filter(p=>p.type==="PR_CULVERT").forEach(p=>{
+    const k=p.cells+"/"+p.size+" "+p.family; byFam[k]=(byFam[k]||0)+1;});
+  const rows=[["Road length",(end/1000).toFixed(3)+" km"],["Stretches",S.stretches.length],
+    ["Point items",S.points.length],["V-ditch",dl.toLocaleString()+" m"],
+    ["Concrete U-drain",ud.toLocaleString()+" m"]].concat(Object.entries(byFam));
+  $("summary").innerHTML=rows.map(([k,v])=>"<dt>"+k+"</dt><dd>"+v+"</dd>").join("");
+}
+
+/* ------------------------------------------------------------- render */
+function renderAll(){
+  $("hRoad").textContent=S.name||"Untitled road";
+  $("hCode").textContent=S.code||"";
+  $("hCh").textContent=fmt(S.ch);
+  $("chNow").value=Math.round(S.ch); $("chStep").value=S.step;
+  $("sampleTag").hidden=!S.sample;
+  if(!S.open) S.open=newOpen(S.stretches.length?S.stretches[S.stretches.length-1].to:0,
+                             S.stretches[S.stretches.length-1]);
+  renderStretchPanel(); renderStretchList(); renderPointList(); renderSetup(); renderChecks(); draw();
+}
+</script>
+<script>
+"use strict";
+/* --------------------------------------------------------------- wiring */
+// overrides live behind a fold: faithful to Form C, out of the way in the field
+(function(){
+  const d=document.createElement("details");
+  d.style.cssText="border:1px solid var(--edge);border-radius:8px;padding:0 10px";
+  d.innerHTML='<summary style="cursor:pointer;padding:11px 0;font-size:12px;color:var(--dim);'+
+    'font-weight:600;letter-spacing:.05em;text-transform:uppercase">Departs from the rule (rare)</summary>'+
+    '<div class="pad" style="padding:0 0 12px">'+
+    '<p class="note">Only where this stretch genuinely differs from the E_Rules treatment for its condition.</p>'+
+    '<div class="grid2">'+
+    '<label>Treatment<select id="ovrTreat"><option value=""></option><option>BLADE</option>'+
+      '<option>RESHAPE</option><option>SCARIFY</option><option>NONE</option></select></label>'+
+    '<label>Sub-base cm<input id="ovrSub" type="text" inputmode="decimal"></label>'+
+    '<label>Base cm<input id="ovrBase" type="text" inputmode="decimal"></label>'+
+    '<label>Prime<select id="ovrPrime"><option value=""></option><option>Y</option><option>N</option></select></label>'+
+    '<label>Seal 1<select id="ovrS1"><option value=""></option><option>Y</option><option>N</option></select></label>'+
+    '<label>Seal 2<select id="ovrS2"><option value=""></option><option>Y</option><option>N</option></select></label>'+
+    '</div></div>';
+  const btn=$("endBtn"); btn.parentNode.insertBefore(d,btn);
+  ["ovrTreat","ovrSub","ovrBase","ovrPrime","ovrS1","ovrS2"].forEach(k=>{
+    $(k).onchange=()=>{S.open[k]=$(k).value.trim();save();};});
+})();
+
+/* chainage */
+function setCh(v){S.ch=Math.max(0,Math.round(v||0));$("hCh").textContent=fmt(S.ch);
+  $("chNow").value=S.ch;renderStretchPanel();draw();save();}
+$("chNow").onchange=e=>setCh(+e.target.value);
+$("chStep").onchange=e=>{S.step=Math.max(1,+e.target.value||50);save();};
+$("chBack").onclick=()=>setCh(S.ch-S.step);
+$("chFwd").onclick=()=>setCh(S.ch+S.step);
+
+/* stretch fields */
+["raiseFill","cutH","cutW","fillH","fillW","scourSp"].forEach(k=>{
+  $(k).oninput=()=>{S.open[k]=$(k).value===""?"":+$(k).value;save();};});
+["ditchL","ditchR","udL","udR","scour"].forEach(k=>{
+  $(k).onchange=()=>{S.open[k]=$(k).value;save();draw();};});
+$("sNote").oninput=()=>{S.open.note=$("sNote").value;save();};
+
+$("endBtn").onclick=()=>{
+  if(S.ch<=S.open.from){alert("The stretch ends where it starts. Move the chainage forward first — walk on, or type where you are.");return;}
+  const s=Object.assign({},S.open,{to:S.ch});
+  S.stretches.push(s);
+  S.open=newOpen(S.ch,s);
+  renderAll(); save();
+};
+
+/* GPS: distance travelled along the road, never an authority */
+let watch=null,last=null;
+function hav(a,b){const R=6371000,t=x=>x*Math.PI/180;
+  const dLa=t(b.lat-a.lat),dLo=t(b.lon-a.lon);
+  const h=Math.sin(dLa/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));}
+$("gpsBtn").onclick=()=>{
+  const b=$("gpsBtn");
+  if(watch!==null){navigator.geolocation.clearWatch(watch);watch=null;last=null;
+    b.classList.remove("on");b.textContent="GPS off";return;}
+  if(!navigator.geolocation){b.textContent="No GPS";return;}
+  b.textContent="GPS…";
+  watch=navigator.geolocation.watchPosition(pos=>{
+    b.classList.add("on"); b.textContent="GPS ±"+Math.round(pos.coords.accuracy)+"m";
+    const p={lat:pos.coords.latitude,lon:pos.coords.longitude};
+    if(last){const d=hav(last,p); if(d>3&&d<120) setCh(S.ch+d);}   // ignore jitter and jumps
+    last=p;
+  },err=>{watch=null;b.classList.remove("on");
+    b.textContent="GPS blocked"; console.log("geolocation:",err&&err.message);},
+   {enableHighAccuracy:true,maximumAge:2000,timeout:15000});
+};
+
+/* points */
+opt($("pType"),PTYPES.map(t=>[t,t.replace(/_/g," ")]),"PR_CULVERT");
+opt($("pFamily"),[["PC","PC  pipe"],["BC","BC  box"],["UC","UC  U-culvert"]],"PC");
+opt($("pCells"),[["1","1"],["2","2"],["3","3"],["4","4"]],"1");
+opt($("pOrient"),[["Right Angle","Right Angle"],["Skew","Skew"]],"Right Angle");
+function ptMode(){const t=$("pType").value;
+  $("culvFields").hidden=(t!=="PR_CULVERT");
+  $("qtyWrap").hidden=!QTY_TYPES[t];
+  if(QTY_TYPES[t]) $("qtyWrap").firstChild.textContent="Quantity ("+QTY_TYPES[t]+")";}
+$("pType").onchange=ptMode; ptMode();
+let photo=null;
+$("pPhoto").onchange=e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f)return;
+  const img=new Image(), url=URL.createObjectURL(f);
+  img.onload=()=>{const k=Math.min(1,900/Math.max(img.width,img.height));
+    const cv=document.createElement("canvas"); cv.width=img.width*k; cv.height=img.height*k;
+    cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+    photo=cv.toDataURL("image/jpeg",0.6); URL.revokeObjectURL(url);
+    $("pPreview").src=photo; $("pPreview").hidden=false;};
+  img.src=url;
+};
+$("addPt").onclick=()=>{
+  const t=$("pType").value;
+  const p={ch:S.ch,type:t,family:"",cells:"",size:"",len:"",orient:"",qty:"",note:$("pNote").value,photo:photo};
+  if(t==="PR_CULVERT"){p.family=$("pFamily").value;p.cells=+$("pCells").value;
+    p.size=$("pSize").value.trim();p.len=num($("pLen").value);p.orient=$("pOrient").value;
+    if(!p.size){alert("A proposed culvert needs a size — the diameter in mm for a pipe, or span x rise for a box or U-culvert.");return;}}
+  if(QTY_TYPES[t]){p.qty=num($("pQty").value);
+    if(p.qty===""){alert("A "+t.replace(/_/g," ").toLowerCase()+" needs a quantity in "+QTY_TYPES[t]+".");return;}}
+  S.points.push(p); photo=null; $("pPhoto").value=""; $("pPreview").hidden=true;
+  $("pNote").value=""; $("pQty").value=""; $("pSize").value="";
+  renderAll(); save();
+};
+
+/* setup */
+[["mName","name"],["mCode","code"],["mRegion","region"],["mDistrict","district"],["mBy","by"],["mDate","date"]]
+  .forEach(([id,k])=>{$(id).oninput=()=>{S[k]=$(id).value;S.sample=false;
+    $("hRoad").textContent=S.name||"Untitled road";$("hCode").textContent=S.code||"";
+    $("sampleTag").hidden=true;save();};});
+$("newRoad").onclick=()=>{ if(!confirm("Start a new road? The survey on this device will be replaced. Export first if you need it."))return;
+  S=blankState(); renderAll(); save(); };
+$("loadSample").onclick=()=>{ if(!confirm("Reload the Osubeng example? Anything recorded here will be replaced."))return;
+  S=sampleState(); renderAll(); save(); };
+
+/* export — hosted app saves directly; a claude.ai preview goes through the viewer */
+let DL;
+async function getDL(){
+  if(DL!==undefined) return DL;
+  try{ DL = (window.claude && typeof claude.use==="function") ? await claude.use("downloads") : null; }
+  catch(e){ DL=null; }
+  return DL;
+}
+async function saveFile(bytes,name,mime){
+  const dl=await getDL();
+  if(!dl){ download(bytes,name,mime); return; }
+  try{ await dl.save({filename:name,data:new Blob([bytes],{type:mime})}); }
+  catch(err){
+    const c=err&&err.code;
+    if(c==="declined"||c==="rate_limited") return;
+    if(c==="rejected_extension"||c==="extension_not_enabled"){
+      alert("This preview link cannot hand over spreadsheet files.\n\n"+
+            "Export the raw data as .json here, or install the app on the phone "+
+            "(or host it on your own address) where the survey workbook export works.");
+      return;
+    }
+    alert("Save failed ("+(c||"unknown")+").");
+  }
+}
+$("dlXlsx").onclick=async()=>{ try{ await saveFile(buildWorkbook(),slug()+"_Condition_Survey.xlsx",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); }
+  catch(e){ alert("Export failed: "+e.message); } };
+$("dlJson").onclick=()=>saveFile(te.encode(JSON.stringify(S,null,1)),slug()+"_survey.json","application/json");
+
+/* nav */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-current",String(x===b)));
+  ["survey","points","setup","export"].forEach(v=>$("v-"+v).hidden=(v!==b.dataset.v));
+  if(b.dataset.v==="export") renderChecks();
+  window.scrollTo(0,0);
+});
+addEventListener("resize",draw);
+
+/* boot */
+(async()=>{
+  const saved=await load();
+  S = saved || sampleState();
+  if(!S.params) S.params=Object.fromEntries(PARAMS.map(p=>[p[6],p[3]]));
+  renderAll();
+  try{ if("serviceWorker" in navigator && location.protocol==="https:")
+        navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){}
+})();
+</script>
+
+</body>
+</html>

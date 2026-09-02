@@ -1,8 +1,8 @@
 {
   "name": "Bespa Road Condition Survey App",
   "short_name": "Bespa Survey",
-  "start_url": ".",
-  "scope": ".",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1B3A5C",

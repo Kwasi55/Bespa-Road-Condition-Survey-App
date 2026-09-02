@@ -1,5 +1,5 @@
-const C="bespa-survey-v1";
-const ASSETS=["./","./bespa-survey.html","./manifest.webmanifest","./icon.svg"];
+const C="bespa-survey-v2";
+const ASSETS=["./","./index.html","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",e=>{self.skipWaiting();
   e.waitUntil(caches.open(C).then(c=>c.addAll(ASSETS).catch(()=>{})));});
 self.addEventListener("activate",e=>{e.waitUntil(
@@ -8,4 +8,4 @@ self.addEventListener("fetch",e=>{
   if(e.request.method!=="GET") return;
   e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
     const cp=res.clone(); caches.open(C).then(c=>c.put(e.request,cp).catch(()=>{})); return res;
-  }).catch(()=>caches.match("./bespa-survey.html"))));});
+  }).catch(()=>caches.match("./index.html"))));});
