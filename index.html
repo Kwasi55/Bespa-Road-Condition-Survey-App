@@ -308,8 +308,9 @@ button.act.end{background:var(--paper);border-color:var(--live);color:var(--live
           <button class="act" type="button" id="dlXlsx">Export survey workbook (.xlsx)</button>
           <button class="act ghost" type="button" id="dlJson">Export raw data + photos (.json)</button>
           <p class="note">The workbook carries Forms A to F laid out exactly as they sit in the Master
-            Estimator. On the desktop, open both files, copy each form's data block and paste it into
-            the matching sheet — the estimator does the rest. Nothing here produces a bill: pricing,
+            Estimator. On the desktop, open both files and paste each block into the sheet of the same
+            name, starting at A5 — one sheet at a time, never whole rows. Then press Ctrl+Alt+F9 and
+            read 90_Checks: all 20 tests must say OK. Nothing here produces a bill: pricing,
             taking-off and the BOQ stay on the desktop under an engineer's eye.</p>
         </div>
       </div>
@@ -577,10 +578,14 @@ function buildWorkbook(){
     [],
     ["HOW TO LOAD THIS"],
     ["1","Open this file and the Master Estimator side by side."],
-    ["2","For each of A_Corridor, B_Drainage, C_Pavement and D_Points: select the data block from row 5 down, copy, and paste into the same sheet of the estimator at row 5."],
-    ["3","Do the same for E_Rules (rows 5-9) and for the Value column of F_Road_Data."],
-    ["4","Type the road name, code, region and district on 00_Project. The road length is measured for you."],
-    ["5","Read 90_Checks. Every test must say OK before the bill is issued."],
+    ["2","Take one sheet at a time and paste it into the sheet of THE SAME NAME. Each block starts at A5."],
+    ["3","A_Corridor -> A_Corridor A5.  B_Drainage -> B_Drainage A5.  C_Pavement -> C_Pavement A5.  D_Points -> D_Points A5."],
+    ["4","Never paste whole rows or drag past column I on D_Points. Select only the block you can see."],
+    ["5","E_Rules rows 5-9, and the Value column of F_Road_Data."],
+    ["6","Type the road name, code, region and district on 00_Project. The road length is measured for you."],
+    ["7","Press Ctrl+Alt+F9 to rebuild every formula, then save."],
+    ["8","Read 90_Checks. All 20 tests must say OK before the bill is issued."],
+    ["9","Tests 11 and 14 exist because a block pasted into the wrong sheet reports nothing: the bill simply comes up short."],
     [],
     ["Chainages are in METRES."],
     ["Where a concrete U-drain or trapezoidal drain runs, the V-ditch on that side is suppressed for that length and resumes after it."],
