@@ -168,8 +168,34 @@ table.mini td{padding:7px 8px;border-bottom:1px solid var(--hair);font-family:va
 table.mini td:first-child,table.mini th:first-child{font-family:var(--f-sans)}
 .scroll{overflow-x:auto}
 footer{padding:16px 14px 26px;color:var(--faint);font-size:11px;line-height:1.6;border-top:1px solid var(--hair)}
-</style>
-</head>
+.lead{margin:0}
+.items{display:flex;flex-direction:column}
+.item{padding:11px 12px;border-bottom:1px solid var(--hair);display:flex;flex-direction:column;gap:8px}
+.item:last-child{border-bottom:0}
+.item.running{background:var(--live-soft)}
+.itop{display:flex;align-items:baseline;gap:10px}
+.ilabel{font-size:13px;font-weight:600;flex:1}
+.istate{font-family:var(--f-mono);font-size:11px;color:var(--faint);text-align:right;white-space:nowrap}
+.istate.on{color:var(--live);font-weight:600}
+.istate.mask{color:var(--warn)}
+.ictl .chips{gap:5px}
+.ictl .chip{min-height:40px;font-size:12px;padding:0 11px}
+.ictl select{min-height:44px}
+.hw{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.hwl{flex:1;min-width:104px;font-size:11px}
+.hwl input{min-height:44px}
+.hwb{display:flex;gap:6px}
+.iend{display:flex;justify-content:flex-end}
+button.act.end{background:var(--paper);border-color:var(--live);color:var(--live)}
+.logrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:9px 12px;border-bottom:1px solid var(--hair)}
+.logrow:last-child{border-bottom:0}
+.logrow .rng{font-family:var(--f-mono);font-size:11px;color:var(--dim);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.logrow .desc{font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.logb{display:flex;gap:5px}
+.logb .act{min-height:34px;font-size:11px;padding:0 9px}
+</style></head>
 <body>
 <div id="app">
   <header>
@@ -187,7 +213,7 @@ footer{padding:16px 14px 26px;color:var(--faint);font-size:11px;line-height:1.6;
       <div class="chsub">chainage<br><span class="tap-hint">tap to correct</span></div>
       <button class="gps" id="gpsBtn" type="button">GPS off</button>
     </div>
-    <canvas id="strip" height="34"></canvas>
+    <canvas id="strip" height="46"></canvas>
     <nav>
       <button type="button" data-v="survey" aria-current="true">Survey</button>
       <button type="button" data-v="points">Points</button>
@@ -197,82 +223,21 @@ footer{padding:16px 14px 26px;color:var(--faint);font-size:11px;line-height:1.6;
   </header>
 
   <main>
-    <!-- ============ SURVEY ============ -->
     <section class="view" id="v-survey">
       <div id="sampleTag" class="sample" hidden>Example road loaded — Osubeng Jn to Osubeng. Start a new road in Setup.</div>
-
       <div id="openBox"></div>
+      <p class="note lead">Tap <strong>Start here</strong>, or pick a value, where an item begins; tap
+        <strong>End here</strong> where it stops. The app stamps the chainage and remembers the run. Nothing else is
+        disturbed, so you only ever touch what actually changed. A concrete U-drain or trapezoidal
+        drain automatically suppresses the V-ditch on that side for its length; the ditch resumes
+        on its own afterwards.</p>
 
-      <div class="panel">
-        <h3>Section limits</h3>
-        <div class="pad">
-          <div class="grid2">
-            <label>From (m)
-              <div class="stamp">
-                <input type="number" id="secFrom" step="1" min="0" inputmode="numeric">
-                <button type="button" class="pin" id="pinFrom">Stamp</button>
-              </div>
-            </label>
-            <label>To (m)
-              <div class="stamp">
-                <input type="number" id="secTo" step="1" min="0" inputmode="numeric">
-                <button type="button" class="pin" id="pinTo">Stamp</button>
-              </div>
-            </label>
-          </div>
-          <div class="seclen" id="secLen">—</div>
-          <p class="note"><strong>Stamp</strong> writes the chainage you are standing at into that box. Stamp
-            From at the start of the section, walk to where the road or its features change, then stamp To.
-            Both can be typed over. GPS measures distance travelled along the road and is an aid, not an
-            authority — tap the chainage at the top to correct it whenever you pass a known point.</p>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h3>What is true along this section</h3>
-        <div class="pad">
-          <label>Surface condition
-            <div class="chips" id="condChips"></div>
-          </label>
-          <label>Vegetation
-            <div class="chips" id="vegChips"></div>
-          </label>
-          <div class="chips" id="toggleChips"></div>
-          <div class="grid2">
-            <label>Ditch left<select id="ditchL"></select></label>
-            <label>Ditch right<select id="ditchR"></select></label>
-          </div>
-          <div class="grid2">
-            <label>U-drain left (cm)<select id="udL"></select></label>
-            <label>U-drain right (cm)<select id="udR"></select></label>
-          </div>
-          <div class="grid2">
-            <label>Raise road: fill (cm)<input type="number" id="raiseFill" step="5" min="0"></label>
-            <label>Cut to widen (cm)<input type="number" id="cutH" step="5" min="0"></label>
-          </div>
-          <div class="grid2">
-            <label>Cut width L+R (m)<input type="number" id="cutW" step="0.5" min="0"></label>
-            <label>Fill to widen (cm)<input type="number" id="fillH" step="5" min="0"></label>
-          </div>
-          <div class="grid2">
-            <label>Fill width L+R (m)<input type="number" id="fillW" step="0.5" min="0"></label>
-            <label>Scour checks<select id="scour"></select></label>
-          </div>
-          <label>Scour check spacing (m)<input type="number" id="scourSp" step="5" min="0"></label>
-          <label>Note<input type="text" id="sNote" placeholder="optional"></label>
-          <button class="act live" type="button" id="endBtn">Save section</button>
-          <p class="note">The next section starts automatically where this one ends, carrying these settings
-            forward. Change only what has changed.</p>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h3>Sections recorded</h3>
-        <div class="slist" id="slist"></div>
-      </div>
+      <div class="panel"><h3>Corridor — Form A</h3><div class="items" id="itemsA"></div></div>
+      <div class="panel"><h3>Drainage — Form B</h3><div class="items" id="itemsB"></div></div>
+      <div class="panel"><h3>Pavement — Form C</h3><div class="items" id="itemsC"></div></div>
+      <div class="panel"><h3>Change log</h3><div class="slist" id="log"></div></div>
     </section>
 
-    <!-- ============ POINTS ============ -->
     <section class="view" id="v-points" hidden>
       <div class="panel">
         <h3>Add at current chainage</h3>
@@ -292,13 +257,9 @@ footer{padding:16px 14px 26px;color:var(--faint);font-size:11px;line-height:1.6;
           <button class="act" type="button" id="addPt">Add point here</button>
         </div>
       </div>
-      <div class="panel">
-        <h3>Point items</h3>
-        <div class="slist" id="plist"></div>
-      </div>
+      <div class="panel"><h3>Point items</h3><div class="slist" id="plist"></div></div>
     </section>
 
-    <!-- ============ SETUP ============ -->
     <section class="view" id="v-setup" hidden>
       <div class="panel">
         <h3>Road</h3>
@@ -315,53 +276,54 @@ footer{padding:16px 14px 26px;color:var(--faint);font-size:11px;line-height:1.6;
           <label>Surveyed by<input type="text" id="mBy"></label>
           <div class="row">
             <button class="act ghost small" type="button" id="newRoad">Start a new road</button>
-            <button class="act ghost small" type="button" id="loadSample">Reload example</button>
+            <button class="act ghost small" type="button" id="loadSample">Load example road</button>
           </div>
         </div>
       </div>
       <div class="panel">
         <h3>Form E — treatment rules</h3>
         <div class="pad">
-          <p class="note">What the surveyor <strong>saw</strong> goes on the section. What is <strong>done</strong> about it is written once here. Agree these with the design engineer before the survey starts.</p>
+          <p class="note">What the surveyor <strong>saw</strong> goes on the road. What is
+            <strong>done</strong> about it is written once here. Agree these with the design
+            engineer before the survey starts.</p>
           <div class="scroll"><table class="mini" id="rulesTable"></table></div>
         </div>
       </div>
       <div class="panel">
         <h3>Form F — road data</h3>
         <div class="pad">
-          <p class="note">A <span class="flag">!</span> marks a template figure not yet confirmed for this road. Overhaul and haulage alone routinely move a bill by a quarter.</p>
+          <p class="note">A <span class="flag">!</span> marks a template figure not yet confirmed for
+            this road. Overhaul and haulage alone routinely move a bill by a quarter.</p>
           <div id="paramList" style="display:flex;flex-direction:column;gap:10px"></div>
         </div>
       </div>
     </section>
 
-    <!-- ============ EXPORT ============ -->
     <section class="view" id="v-export" hidden>
-      <div class="panel">
-        <h3>Checks</h3>
-        <div id="checks"></div>
-      </div>
-      <div class="panel">
-        <h3>Survey summary</h3>
-        <div class="pad"><dl class="kv" id="summary"></dl></div>
-      </div>
+      <div class="panel"><h3>Checks</h3><div id="checks"></div></div>
+      <div class="panel"><h3>Survey summary</h3><div class="pad"><dl class="kv" id="summary"></dl></div></div>
       <div class="panel">
         <h3>Hand over to the Master Estimator</h3>
         <div class="pad">
           <button class="act" type="button" id="dlXlsx">Export survey workbook (.xlsx)</button>
           <button class="act ghost" type="button" id="dlJson">Export raw data + photos (.json)</button>
-          <p class="note">The workbook carries Forms A to F laid out exactly as they sit in the Master Estimator. On the desktop, open both files, copy each form's data block and paste it into the matching sheet — the estimator does the rest. Nothing here produces a bill: pricing, taking-off and the BOQ stay on the desktop under an engineer's eye.</p>
+          <p class="note">The workbook carries Forms A to F laid out exactly as they sit in the Master
+            Estimator. On the desktop, open both files, copy each form's data block and paste it into
+            the matching sheet — the estimator does the rest. Nothing here produces a bill: pricing,
+            taking-off and the BOQ stay on the desktop under an engineer's eye.</p>
         </div>
       </div>
     </section>
   </main>
 
   <footer>
-    Bespa Road Condition Survey App, for the Department of Feeder Roads. Works offline; everything is stored on this
-    device until you export. Chainages are metres. Blank means nothing recorded.
+    Bespa Road Condition Survey App, for the Department of Feeder Roads. Works offline; everything is
+    stored on this device until you export. Chainages are metres.
   </footer>
 </div>
+
 <script>
+"use strict";
 "use strict";
 /* ------------------------------------------------------------------ codes */
 const VEG=[["EB","Existing bush"],["GB","Grass bush"],["SB","Savannah bush"],["LB","Light bush"],["TB","Thick bush"]];
@@ -371,8 +333,6 @@ const COND=[["G","Good"],["F","Fair"],["P","Poor"],["VP","Very poor"],["NR","No 
 const CONDCOL={G:"var(--g)",F:"var(--f)",P:"var(--p)",VP:"var(--vp)",NR:"var(--nr)"};
 const PTYPES=["PR_CULVERT","EX_CULVERT","JN_CULVERT","EX_BRIDGE","PR_BRIDGE","GULLY","TURNOUT_L","TURNOUT_R","PITCHING"];
 const QTY_TYPES={GULLY:"m³",TURNOUT_L:"m",TURNOUT_R:"m",PITCHING:"m²"};
-const TOGGLES=[["town","Township"],["trapL","Trap. drain L"],["trapR","Trap. drain R"],
-               ["kerbL","Kerb L"],["kerbR","Kerb R"],["retL","Ret. wall L"],["retR","Ret. wall R"]];
 const RULES0=[["G","Good — shape and camber sound, light maintenance only","BLADE",null,null,null,null,null],
  ["F","Fair — camber lost in places, some potholing","RESHAPE",10,15,"Y","Y","Y"],
  ["P","Poor — badly deformed, potholed, camber gone","RESHAPE",15,15,"Y","Y","Y"],
@@ -405,7 +365,7 @@ const PARAMS=[
  [41,"!","Pedestrian crossing factor",2,"m/km","","P_PedXF"]];
 
 /* ------------------------------------------------------------- persistence */
-const KEY="bespa-survey-v2";
+const KEY="bespa-survey-v3";
 let DB=null;
 function idb(){return new Promise(res=>{try{
   const r=indexedDB.open(KEY,1);
@@ -428,57 +388,95 @@ async function load(){
   return null;
 }
 
-/* -------------------------------------------------------------- the state */
-function blankState(){
-  return {name:"",code:"",region:"",district:"",by:"",date:new Date().toISOString().slice(0,10),
-    rules:JSON.parse(JSON.stringify(RULES0)),
-    params:Object.fromEntries(PARAMS.map(p=>[p[6],p[3]])),
-    ch:0, step:50, sections:[], points:[], open:null, sample:false};
-}
-function newOpen(from,seed){
-  const base={from:from,to:"",cond:"",veg:"",town:false,trapL:false,trapR:false,kerbL:false,kerbR:false,
-    retL:false,retR:false,ditchL:"",ditchR:"",udL:"",udR:"",raiseFill:"",cutH:"",cutW:"",
-    fillH:"",fillW:"",scour:"",scourSp:"",note:""};
-  if(seed) for(const k in base) if(k!=="from"&&k!=="to"&&k!=="note") base[k]=seed[k];
-  return base;
-}
-let S=blankState();
-
-/* --------------------------------------------------------------- sample */
-function sampleState(){
-  const s=blankState();
-  s.name="Osubeng Jn - Osubeng"; s.code="ER-KWS-009"; s.region="Eastern Region";
-  s.district="Kwahu South"; s.by="Dr. Ampadu"; s.date="2026-08-05"; s.sample=true;
-  const mk=(from,to,o)=>Object.assign(newOpen(from,null),{to:to,cond:"P",veg:"GB",
-    ditchL:"RE",ditchR:"RE"},o||{});
-  s.sections=[
-    mk(0,1200,{}),
-    mk(1200,1800,{cutH:120,cutW:4}),
-    mk(1800,4400,{}),
-    mk(4400,5000,{veg:"LB",fillH:60,fillW:4}),
-    mk(5000,7000,{veg:"LB"}),
-    mk(7000,8000,{veg:"LB",ditchL:"",ditchR:"",udL:"60",udR:"60"})
-  ];
-  s.sections.forEach(x=>{x.ovrS2="N";});
-  s.points=[
-    {ch:500,type:"PR_CULVERT",family:"PC",cells:2,size:"900",len:10,orient:"Skew",qty:"",note:"",photo:null},
-    {ch:1500,type:"PR_CULVERT",family:"PC",cells:3,size:"1200",len:12,orient:"Right Angle",qty:"",note:"",photo:null},
-    {ch:5000,type:"PR_CULVERT",family:"BC",cells:2,size:"3x3",len:12,orient:"Right Angle",qty:"",note:"",photo:null}
-  ];
-  s.params.P_OH_Sub=6; s.params.P_OH_Base=9; s.params.P_SignsPerKm=2; s.params.P_RampsPerKm=0.25;
-  s.ch=8000;
-  return s;
-}
-
 /* -------------------------------------------------------------- helpers */
-const $=id=>document.getElementById(id);
-const fmt=m=>{m=Math.max(0,Math.round(m||0));return Math.floor(m/1000)+"+"+String(m%1000).padStart(3,"0");};
 const num=v=>{const n=parseFloat(v);return isNaN(n)?"":n;};
-const roadEnd=()=>Math.max(0,...S.sections.map(s=>s.to||0),...S.points.map(p=>p.ch||0));
 function opt(sel,list,val){sel.innerHTML="";list.forEach(([v,t])=>{const o=document.createElement("option");
   o.value=v;o.textContent=t;sel.appendChild(o);});sel.value=val==null?"":String(val);}
 </script>
 <script>
+"use strict";
+/* ------------------------------------------------------------------ ITEMS
+   Each item records its OWN chainage runs. Switching it on stamps a start;
+   switching it off stamps an end. Nothing else on the road is disturbed.   */
+const ITEMS=[
+ // key      form label                     kind      form  extra
+ ["town",   "Township",                     "flag",   "A"],
+ ["veg",    "Vegetation",                   "code",   "A", VEG],
+ ["raise",  "Raise road in low-lying area", "hw",     "A", ["Fill (cm)"]],
+ ["cut",    "Cut to widen",                 "hw",     "A", ["Depth (cm)","Width L+R (m)"]],
+ ["fillw",  "Fill to widen",                "hw",     "A", ["Height (cm)","Width L+R (m)"]],
+ ["ditchL", "V-ditch left",                 "sel",    "B", DITCH],
+ ["ditchR", "V-ditch right",                "sel",    "B", DITCH],
+ ["udL",    "Concrete U-drain left",        "sel",    "B", UD],
+ ["udR",    "Concrete U-drain right",       "sel",    "B", UD],
+ ["trapL",  "Trapezoidal drain left",       "flag",   "B"],
+ ["trapR",  "Trapezoidal drain right",      "flag",   "B"],
+ ["kerbL",  "Kerb left",                    "flag",   "B"],
+ ["kerbR",  "Kerb right",                   "flag",   "B"],
+ ["scour",  "Scour checks",                 "hw",     "B", ["1 or 2 sides","Spacing (m)"]],
+ ["retL",   "Retaining wall left",          "flag",   "B"],
+ ["retR",   "Retaining wall right",         "flag",   "B"],
+ ["cond",   "Surface condition",            "code",   "C", COND],
+ ["ovrTreat","Treatment (override)",        "sel",    "C", [["",""],["BLADE","BLADE"],["RESHAPE","RESHAPE"],["SCARIFY","SCARIFY"],["NONE","NONE"]]],
+ ["ovrSub", "Sub-base cm (override)",       "hw",     "C", ["cm"]],
+ ["ovrBase","Base cm (override)",           "hw",     "C", ["cm"]],
+ ["ovrPrime","Primer seal (override)",      "sel",    "C", [["",""],["Y","Y"],["N","N"]]],
+ ["ovrS1",  "First seal (override)",        "sel",    "C", [["",""],["Y","Y"],["N","N"]]],
+ ["ovrS2",  "Second seal (override)",       "sel",    "C", [["",""],["Y","Y"],["N","N"]]],
+];
+const ITEM=Object.fromEntries(ITEMS.map(i=>[i[0],{key:i[0],label:i[1],kind:i[2],form:i[3],opts:i[4]}]));
+const FORM_ITEMS={A:ITEMS.filter(i=>i[3]==="A").map(i=>i[0]),
+                  B:ITEMS.filter(i=>i[3]==="B").map(i=>i[0]),
+                  C:ITEMS.filter(i=>i[3]==="C").map(i=>i[0])};
+// a lined drain masks the V-ditch on the same side
+const MASKS={ditchL:["udL","trapL"], ditchR:["udR","trapR"]};
+
+/* -------------------------------------------------------------- the state */
+function blankState(){
+  return {name:"",code:"",region:"",district:"",by:"",
+    date:new Date().toISOString().slice(0,10),
+    rules:JSON.parse(JSON.stringify(RULES0)),
+    params:Object.fromEntries(PARAMS.map(p=>[p[6],p[3]])),
+    ch:0, runs:[], points:[], seq:1, sample:false};
+}
+let S=blankState();
+
+/* ------------------------------------------------------------ run algebra */
+const openRun  = k => S.runs.find(r=>r.item===k && r.to===null) || null;
+const runsOf   = k => S.runs.filter(r=>r.item===k).sort((a,b)=>a.from-b.from);
+function startRun(k,val){
+  const o=openRun(k);
+  if(o){ if(JSON.stringify(o.val)===JSON.stringify(val)) return o;   // no change
+         if(S.ch<=o.from){ o.val=val; return o; }                    // correct in place
+         o.to=S.ch; }
+  const r={id:S.seq++, item:k, val:val, from:S.ch, to:null};
+  S.runs.push(r); return r;
+}
+function stopRun(k){ const o=openRun(k); if(o){ if(S.ch<=o.from){ // never started
+      S.runs.splice(S.runs.indexOf(o),1); } else o.to=S.ch; } }
+function valueAt(k,ch){
+  for(const r of runsOf(k)) if(r.from<=ch && (r.to===null || ch<r.to)) return r.val;
+  return null;
+}
+function maskedAt(k,ch){                    // a V-ditch is suppressed under a lined drain
+  const m=MASKS[k]; if(!m) return false;
+  return m.some(x=>valueAt(x,ch)!==null);
+}
+function effectiveAt(k,ch){ return maskedAt(k,ch) ? null : valueAt(k,ch); }
+const roadEnd=()=>Math.max(0, ...S.runs.map(r=>r.to===null?S.ch:r.to),
+                              ...S.points.map(p=>p.ch||0));
+function changePoints(keys){
+  const end=roadEnd(), set=new Set([0,end]);
+  keys.forEach(k=>runsOf(k).forEach(r=>{
+    set.add(r.from); set.add(r.to===null?end:r.to);
+    (MASKS[k]||[]).forEach(x=>runsOf(x).forEach(q=>{
+      set.add(q.from); set.add(q.to===null?end:q.to); }));
+  }));
+  return [...set].filter(v=>v>=0&&v<=end).sort((a,b)=>a-b);
+}
+</script>
+<script>
+"use strict";
 "use strict";
 /* ---------------------------------------------------------- XLSX writer
    Store-only ZIP + minimal SpreadsheetML, written by hand so the app has
@@ -563,34 +561,19 @@ function xlsx(sheets){                       // sheets: [{name, rows}]
   return zip(files);
 }
 
-/* ------------------------------------------------- survey -> form sheets */
-function merged(pick){                      // collapse consecutive identical sections
-  const out=[];
-  for(const s of S.sections){
-    const v=pick(s), prev=out[out.length-1];
-    if(prev && JSON.stringify(prev.v)===JSON.stringify(v) && prev.to===s.from){prev.to=s.to;continue;}
-    out.push({from:s.from,to:s.to,v:v});
-  }
-  return out.filter(r=>r.v.some(x=>x!==""&&x!==null&&x!==undefined));
-}
-const YN=b=>b?"Y":"";
-function formRows(){
-  const A=merged(s=>[YN(s.town),s.veg,num(s.raiseFill),num(s.cutH),num(s.cutW),num(s.fillH),num(s.fillW)]);
-  const B=merged(s=>[s.ditchL,s.ditchR,s.udL?Number(s.udL):"",s.udR?Number(s.udR):"",
-                     YN(s.trapL),YN(s.trapR),YN(s.kerbL),YN(s.kerbR),num(s.scour),num(s.scourSp),
-                     YN(s.retL),YN(s.retR)]);
-  const C=merged(s=>[s.cond,s.ovrTreat||"",num(s.ovrSub),num(s.ovrBase),s.ovrPrime||"",s.ovrS1||"",s.ovrS2||""]);
-  return {A:A,B:B,C:C};
-}
+</script>
+<script>
+"use strict";
+/* ------------------------------------------------- runs -> the workbook */
 function buildWorkbook(){
-  const {A,B,C}=formRows(), sh=[];
+  const end=roadEnd(), sh=[];
   sh.push({name:"README",rows:[
     ["CONDITION SURVEY  —  captured in the field"],
-    ["Department of Feeder Roads.  Hand this file to the Master Estimator on the desktop."],
+    ["Bespa Road Condition Survey App.  Hand this file to the Master Estimator on the desktop."],
     [],
     ["Road name",S.name],["Road code",S.code],["Region",S.region],["District",S.district],
     ["Surveyed by",S.by],["Date of survey",S.date],
-    ["Road length (m)",roadEnd()],["Sections",S.sections.length],["Point items",S.points.length],
+    ["Road length (m)",end],["Entries recorded",S.runs.length],["Point items",S.points.length],
     [],
     ["HOW TO LOAD THIS"],
     ["1","Open this file and the Master Estimator side by side."],
@@ -600,35 +583,42 @@ function buildWorkbook(){
     ["5","Read 90_Checks. Every test must say OK before the bill is issued."],
     [],
     ["Chainages are in METRES."],
+    ["Where a concrete U-drain or trapezoidal drain runs, the V-ditch on that side is suppressed for that length and resumes after it."],
     ["This file records what was seen. It is not an estimate and carries no rates."]]});
-  sh.push({name:"A_Corridor",rows:[["FORM A  —  CORRIDOR, CLEARING AND EARTHWORKS"],[],[],
-    ["From","To","Township Y/N","Vegetation","Raise road: fill (cm)","Cut to widen (cm)",
-     "Cut width L+R (m)","Fill to widen (cm)","Fill width L+R (m)","Notes"],
-    ...A.map(r=>[r.from,r.to,...r.v,""])]});
-  sh.push({name:"B_Drainage",rows:[["FORM B  —  DRAINAGE"],[],[],
-    ["From","To","Ditch L","Ditch R","U-drain L (cm)","U-drain R (cm)","Trap. drain L","Trap. drain R",
-     "Kerb L","Kerb R","Scour checks","Scour spacing (m)","Ret. wall L","Ret. wall R","Notes"],
-    ...B.map(r=>[r.from,r.to,...r.v,""])]});
-  sh.push({name:"C_Pavement",rows:[["FORM C  —  PAVEMENT AND SURFACING"],[],[],
-    ["From","To","Surface condition","Treatment (override)","Sub-base cm (ovr)","Base cm (ovr)",
-     "Prime (ovr)","Seal 1 (ovr)","Seal 2 (ovr)","Notes"],
-    ...C.map(r=>[r.from,r.to,...r.v,""])]});
+  const head={
+    A:["From","To","Township Y/N","Vegetation","Raise road: fill (cm)","Cut to widen (cm)",
+       "Cut width L+R (m)","Fill to widen (cm)","Fill width L+R (m)","Notes"],
+    B:["From","To","Ditch L","Ditch R","U-drain L (cm)","U-drain R (cm)","Trap. drain L",
+       "Trap. drain R","Kerb L","Kerb R","Scour checks","Scour spacing (m)","Ret. wall L",
+       "Ret. wall R","Notes"],
+    C:["From","To","Surface condition","Treatment (override)","Sub-base cm (ovr)","Base cm (ovr)",
+       "Prime (ovr)","Seal 1 (ovr)","Seal 2 (ovr)","Notes"]};
+  const title={A:"FORM A  —  CORRIDOR, CLEARING AND EARTHWORKS",
+               B:"FORM B  —  DRAINAGE", C:"FORM C  —  PAVEMENT AND SURFACING"};
+  const sheet={A:"A_Corridor",B:"B_Drainage",C:"C_Pavement"};
+  ["A","B","C"].forEach(f=>{
+    sh.push({name:sheet[f],rows:[[title[f]],[],[],head[f],
+      ...rowsFor(f).map(r=>[r.from,r.to,...r.cells,""])]});
+  });
   sh.push({name:"D_Points",rows:[["FORM D  —  POINT ITEMS"],[],[],
     ["Chainage","Type","Family","Cells","Size","Length (m)","Orientation","Quantity","Notes"],
     ...S.points.slice().sort((a,b)=>a.ch-b.ch).map(p=>[p.ch,p.type,p.family||"",p.cells||"",
       p.size||"",num(p.len),p.orient||"",num(p.qty),p.note||""])]});
   sh.push({name:"E_Rules",rows:[["FORM E  —  TREATMENT RULES"],[],[],
-    ["Condition","What it looks like","Treatment","Sub-base (cm)","Base (cm)","Primer seal","First seal","Second seal"],
-    ...S.rules]});
+    ["Condition","What it looks like","Treatment","Sub-base (cm)","Base (cm)","Primer seal",
+     "First seal","Second seal"], ...S.rules]});
   const F=[["FORM F  —  ROAD DATA"],
     ["Values copied into 00_Project. A ! marks a template figure not yet confirmed for this road."],[],
     ["Confirm?","Parameter","Value","Unit","Note","","Name"]];
-  const maxR=41; for(let r=5;r<=maxR;r++) F[r-1]=F[r-1]||[];
+  for(let r=5;r<=41;r++) F[r-1]=F[r-1]||[];
   for(const k in SECTIONS) F[Number(k)-1]=[SECTIONS[k]];
   PARAMS.forEach(p=>{F[p[0]-1]=[p[1],p[2],S.params[p[6]],p[4],p[5],"",p[6]];});
   sh.push({name:"F_Road_Data",rows:F});
   return xlsx(sh);
 }
+</script>
+<script>
+"use strict";
 function download(bytes,name,mime){
   const b=new Blob([bytes],{type:mime}), u=URL.createObjectURL(b), a=document.createElement("a");
   a.href=u; a.download=name; document.body.appendChild(a); a.click();
@@ -638,88 +628,270 @@ const slug=()=>(S.name||"survey").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g
 </script>
 <script>
 "use strict";
-/* ------------------------------------------------------------------- UI */
-function chips(host,list,get,set,keyed){
+/* ------------------------------------------------- runs -> the form sheets */
+const nCells = it => it.kind==="hw" ? it.opts.length : 1;
+function cellFor(k,ch){
+  const it=ITEM[k], n=nCells(it);
+  const v=(k in MASKS)?effectiveAt(k,ch):valueAt(k,ch);
+  if(v===null||v===undefined||v==="") return new Array(n).fill("");
+  if(it.kind==="flag") return ["Y"];
+  if(it.kind==="hw"){ const a=(v||[]).slice(0,n);
+    while(a.length<n) a.push("");
+    return a.map(x=>(x===""||x===null||isNaN(x))?"":Number(x)); }
+  return [v];
+}
+function rowsFor(form){
+  const keys=FORM_ITEMS[form], pts=changePoints(keys), out=[];
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i], b=pts[i+1];
+    if(b<=a) continue;
+    let cells=[]; keys.forEach(k=>cells=cells.concat(cellFor(k,a)));
+    if(!cells.some(c=>c!=="")) continue;                 // nothing on this span
+    const prev=out[out.length-1];
+    if(prev && prev.to===a && JSON.stringify(prev.cells)===JSON.stringify(cells)){
+      prev.to=b; continue;                               // merge identical neighbours
+    }
+    out.push({from:a,to:b,cells:cells});
+  }
+  return out;
+}
+</script>
+<script>
+"use strict";
+/* --------------------------------------------------------------- helpers */
+const $=id=>document.getElementById(id);
+const fmt=m=>{m=Math.max(0,Math.round(m||0));return Math.floor(m/1000)+"+"+String(m%1000).padStart(3,"0");};
+const esc2=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+function spans(k){                       // effective [from,to) intervals with a value
+  const end=roadEnd(), pts=changePoints([k]), out=[];
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i], b=pts[i+1];
+    const v=(k in MASKS)?effectiveAt(k,a):valueAt(k,a);
+    if(v===null||v===undefined||v==="") continue;
+    const p=out[out.length-1];
+    if(p&&p.to===a&&JSON.stringify(p.val)===JSON.stringify(v)) p.to=b;
+    else out.push({from:a,to:b,val:v});
+  }
+  return out;
+}
+const covered=k=>spans(k).reduce((a,s)=>a+(s.to-s.from),0);
+function stateText(k){
+  const o=openRun(k);
+  if(k in MASKS && o && maskedAt(k,S.ch)) return ["masked by the lined drain","mask"];
+  if(o) return [labelVal(k,o.val)+" since "+fmt(o.from),"on"];
+  const n=runsOf(k).length;
+  return n? [n+" recorded, not running now",""] : ["—",""];
+}
+function labelVal(k,v){
+  const it=ITEM[k];
+  if(it.kind==="flag") return "on";
+  if(it.kind==="hw")   return (v||[]).filter(x=>x!==""&&x!==null).join(" / ");
+  return String(v);
+}
+
+/* ------------------------------------------------------------ item cards */
+function itemCard(k){
+  const it=ITEM[k], o=openRun(k), [txt,cls]=stateText(k);
+  const d=document.createElement("div"); d.className="item"+(o?" running":"");
+  let ctl="";
+  if(it.kind==="flag"){
+    ctl='<button type="button" class="act small'+(o?" end":"")+'" data-a="flag">'+
+        (o?"End here":"Start here")+'</button>';
+  }else if(it.kind==="code"){
+    ctl='<div class="chips">'+it.opts.map(([v,t])=>
+      '<button type="button" class="chip" data-a="code" data-v="'+esc2(v)+'" aria-pressed="'+
+      (o&&o.val===v)+'"><span class="k">'+esc2(v)+'</span>'+esc2(t)+'</button>').join("")+'</div>';
+  }else if(it.kind==="sel"){
+    ctl='<select data-a="sel">'+it.opts.map(([v,t])=>
+      '<option value="'+esc2(v)+'"'+((o&&String(o.val)===String(v))?" selected":"")+'>'+
+      esc2(t)+'</option>').join("")+'</select>';
+  }else{                                   // hw — one or two numbers, applied on demand
+    ctl='<div class="hw">'+it.opts.map((lab,i)=>
+      '<label class="hwl">'+esc2(lab)+'<input type="number" step="any" data-i="'+i+'" value="'+
+      (o&&o.val&&o.val[i]!=null?o.val[i]:"")+'" inputmode="decimal"></label>').join("")+
+      '<div class="hwb"><button type="button" class="act small" data-a="set">'+
+      (o?"Change from here":"Start here")+'</button></div></div>';
+  }
+  const endBtn = (o && it.kind!=="flag")
+    ? '<div class="iend"><button type="button" class="act end small" data-a="stop">End here</button></div>'
+    : "";
+  d.innerHTML='<div class="itop"><span class="ilabel">'+esc2(it.label)+'</span>'+
+    '<span class="istate '+cls+'">'+esc2(txt)+'</span></div><div class="ictl">'+ctl+'</div>'+endBtn;
+  d.querySelectorAll("[data-a]").forEach(el=>{
+    const a=el.dataset.a;
+    if(a==="flag") el.onclick=()=>{ openRun(k)?stopRun(k):startRun(k,true); after(); };
+    if(a==="code") el.onclick=()=>{ startRun(k,el.dataset.v); after(); };
+    if(a==="sel")  el.onchange=()=>{ const v=el.value;
+      if(v==="") stopRun(k); else startRun(k, isNaN(+v)||v===""?v:+v); after(); };
+    if(a==="set")  el.onclick=()=>{
+      const vals=[...d.querySelectorAll(".hw input")].map(i=>i.value===""?"":+i.value);
+      if(!vals.some(v=>v!=="")){ alert("Type a value first, then tap Start here."); return; }
+      startRun(k,vals); after(); };
+    if(a==="stop") el.onclick=()=>{ stopRun(k); after(); };
+  });
+  return d;
+}
+function renderItems(){
+  [["A","itemsA"],["B","itemsB"],["C","itemsC"]].forEach(([f,host])=>{
+    const h=$(host); h.innerHTML="";
+    FORM_ITEMS[f].forEach(k=>h.appendChild(itemCard(k)));
+  });
+}
+
+/* ------------------------------------------------------------ change log */
+function renderLog(){
+  const host=$("log"), rs=S.runs.slice().sort((a,b)=>a.from-b.from||a.id-b.id);
+  if(!rs.length){host.innerHTML='<div class="empty">Nothing recorded yet. Switch an item on where it starts and off where it ends — the app stamps the chainage for you.</div>';return;}
   host.innerHTML="";
-  list.forEach(([v,t])=>{
-    const b=document.createElement("button");
-    b.type="button"; b.className="chip"; b.setAttribute("aria-pressed",String(get()===v));
-    b.innerHTML=keyed?'<span class="k">'+v+'</span>'+t:t;
-    b.onclick=()=>{set(get()===v?"":v);renderSectionPanel();draw();save();};
-    host.appendChild(b);
+  rs.forEach(r=>{
+    const it=ITEM[r.item], row=document.createElement("div"); row.className="logrow";
+    row.innerHTML='<span class="rng">'+fmt(r.from)+' → '+(r.to===null?'<em>running</em>':fmt(r.to))+'</span>'+
+      '<span class="desc">'+esc2(it.label)+' &middot; '+esc2(labelVal(r.item,r.val))+'</span>'+
+      '<span class="logb"><button type="button" class="act ghost small" data-e="1">Edit</button>'+
+      '<button type="button" class="act ghost small" data-d="1">Delete</button></span>';
+    row.querySelector("[data-e]").onclick=()=>{
+      const f=prompt(it.label+" — start chainage in metres:", r.from);
+      if(f===null) return;
+      const t=prompt(it.label+" — end chainage in metres (blank = still running):",
+                     r.to===null?"":r.to);
+      if(t===null) return;
+      const nf=Math.max(0,Math.round(+f||0)), nt=(t.trim()===""?null:Math.round(+t));
+      if(nt!==null && nt<=nf){ alert("The end must be beyond the start."); return; }
+      r.from=nf; r.to=nt; after();
+    };
+    row.querySelector("[data-d]").onclick=()=>{
+      if(!confirm("Delete this entry?\n\n"+it.label+"  "+fmt(r.from)+" → "+
+                  (r.to===null?"running":fmt(r.to)))) return;
+      S.runs.splice(S.runs.indexOf(r),1); after();
+    };
+    host.appendChild(row);
   });
 }
-function renderToggles(){
-  const host=$("toggleChips"); host.innerHTML="";
-  const o=S.open||{};
-  TOGGLES.forEach(([k,t])=>{
-    const b=document.createElement("button");
-    b.type="button"; b.className="chip"; b.setAttribute("aria-pressed",String(!!o[k]));
-    b.textContent=t;
-    b.onclick=()=>{o[k]=!o[k];renderToggles();save();};
-    host.appendChild(b);
+</script>
+<script>
+"use strict";
+/* -------------------------------------------------------- line diagram */
+function draw(){
+  const c=$("strip"), w=c.clientWidth||360, H=46;
+  c.width=w*devicePixelRatio; c.height=H*devicePixelRatio;
+  const g=c.getContext("2d"); g.scale(devicePixelRatio,devicePixelRatio); g.clearRect(0,0,w,H);
+  const end=Math.max(roadEnd(),S.ch,1000), X=m=>4+(w-8)*(m/end);
+  const cs=getComputedStyle(document.documentElement);
+  const col=n=>cs.getPropertyValue(n).trim();
+  // surface condition band
+  g.fillStyle="rgba(255,255,255,.16)"; g.fillRect(4,8,w-8,11);
+  spans("cond").forEach(s=>{
+    g.fillStyle=col(String(CONDCOL[s.val]||"").replace(/var\(|\)/g,"").trim())||"#889";
+    g.fillRect(X(s.from),8,Math.max(1,X(s.to)-X(s.from)-1),11);
   });
+  // drainage band: ditch grey, lined drain in the accent — the mask is visible
+  g.fillStyle="rgba(255,255,255,.10)"; g.fillRect(4,24,w-8,7);
+  ["ditchL","ditchR"].forEach((k,i)=>spans(k).forEach(s=>{
+    g.fillStyle="rgba(255,255,255,.55)";
+    g.fillRect(X(s.from),24+i*4,Math.max(1,X(s.to)-X(s.from)-1),3);
+  }));
+  ["udL","udR","trapL","trapR"].forEach(k=>spans(k).forEach(s=>{
+    g.fillStyle=col("--live");
+    g.fillRect(X(s.from),24+(k.endsWith("R")?4:0),Math.max(1,X(s.to)-X(s.from)-1),3);
+  }));
+  S.points.forEach(p=>{const x=X(p.ch);g.fillStyle="#fff";g.fillRect(x-1,4,2,30);});
+  g.fillStyle="rgba(255,255,255,.9)"; g.fillRect(X(S.ch)-1,2,2,34);
 }
-function secLen(o){ const a=Number(o.from), b=Number(o.to);
-  return (o.to===""||isNaN(b)||isNaN(a)) ? null : b-a; }
-function renderSectionPanel(){
-  const o=S.open||newOpen(S.ch,null);
-  $("secFrom").value = o.from===""?"":o.from;
-  $("secTo").value   = o.to===""?"":o.to;
-  const L=secLen(o);
-  $("secLen").textContent = L===null ? "To not set"
-    : (L>0 ? L.toLocaleString()+" m section" : "To must be beyond From");
-  $("secLen").style.color = (L!==null&&L<=0) ? "var(--stop)" : "var(--dim)";
-  chips($("condChips"),COND,()=>o.cond,v=>o.cond=v,true);
-  chips($("vegChips"),VEG,()=>o.veg,v=>o.veg=v,true);
-  renderToggles();
-  opt($("ditchL"),DITCH,o.ditchL); opt($("ditchR"),DITCH,o.ditchR);
-  opt($("udL"),UD,o.udL); opt($("udR"),UD,o.udR);
-  opt($("scour"),[["","—"],["1","1  one side"],["2","2  both sides"]],o.scour);
-  ["raiseFill","cutH","cutW","fillH","fillW","scourSp"].forEach(k=>$(k).value=o[k]===""?"":o[k]);
-  $("sNote").value=o.note||"";
-  ["ovrTreat","ovrSub","ovrBase","ovrPrime","ovrS1","ovrS2"].forEach(k=>{const el=$(k);if(el)el.value=o[k]||"";});
+
+/* -------------------------------------------------------------- checks */
+function checkList(){
+  const out=[], end=roadEnd(), add=(k,t)=>out.push([k,t]);
+  if(!S.name.trim()) add("stop","Road name is empty — 00_Project needs it.");
+  else add("ok","Road identified: "+S.name+(S.code?" ("+S.code+")":""));
+  if(end<=0){ add("stop","Nothing recorded yet."); return out; }
+  add("ok","Road length "+(end/1000).toFixed(3)+" km, measured from the furthest chainage.");
+
+  const cc=covered("cond"), vc=covered("veg");
+  add(cc>=end-0.5?"ok":"warn", cc>=end-0.5
+    ? "Surface condition recorded over the whole road."
+    : ((end-cc)/1000).toFixed(3)+" km has no surface condition — pavement will be blank there.");
+  add(vc>=end-0.5?"ok":"warn", vc>=end-0.5
+    ? "Vegetation recorded over the whole road."
+    : ((end-vc)/1000).toFixed(3)+" km has no vegetation — no clearing will be billed there.");
+
+  let clash=0;
+  changePoints(["ditchL","ditchR"]).forEach(ch=>{
+    ["L","R"].forEach(s=>{ if(valueAt("ditch"+s,ch)!==null &&
+      (valueAt("ud"+s,ch)!==null||valueAt("trap"+s,ch)!==null)) clash++; });
+  });
+  add("ok", clash? clash+" span(s) where a lined drain masks the V-ditch — the ditch is suppressed there and resumes after."
+    : "No drain conflicts: one drainage type per side at every chainage.");
+
+  const open=S.runs.filter(r=>r.to===null);
+  if(open.length) add("warn", open.length+" item(s) still running — they will be closed at "+
+    fmt(end)+" on export: "+open.map(r=>ITEM[r.item].label).join(", ")+".");
+  else add("ok","No item left running.");
+
+  const badCulv=S.points.filter(p=>p.type==="PR_CULVERT"&&(!p.family||!p.size||!p.len)).length;
+  add(badCulv?"stop":"ok", badCulv? badCulv+" proposed culvert(s) missing family, size or length — they will never be priced."
+    : S.points.filter(p=>p.type==="PR_CULVERT").length+" proposed culverts, each with family, size and length.");
+  const badQty=S.points.filter(p=>QTY_TYPES[p.type]&&(p.qty===""||p.qty==null)).length;
+  add(badQty?"stop":"ok", badQty? badQty+" gully, turnout or pitching item(s) with no quantity."
+    : "Every measured point item carries a quantity.");
+  const beyond=S.points.filter(p=>p.ch>end+0.5).length;
+  if(beyond) add("warn",beyond+" point item(s) lie beyond the surveyed road — check for a typo.");
+
+  const b=+S.params.P_BinderPct, cu=+S.params.P_CutterPct;
+  add(Math.abs(b+cu-1)<1e-6?"ok":"stop", Math.abs(b+cu-1)<1e-6
+    ? "Binder and cutter oil come to 1.00." : "Binder ("+b+") + cutter oil ("+cu+") = "+(b+cu)+", not 1.00.");
+  const unconf=PARAMS.filter(p=>p[1]==="!"&&S.params[p[6]]===p[3]).length;
+  add(unconf?"warn":"ok", unconf? unconf+" of 17 flagged constants are still at the template figure — confirm them with the design engineer."
+    : "All 17 flagged constants have been set for this road.");
+  return out;
+}
+function renderChecks(){
+  const host=$("checks"); host.innerHTML="";
+  checkList().forEach(([k,t])=>{
+    const d=document.createElement("div"); d.className="check";
+    d.innerHTML='<span class="mark '+k+'">'+(k==="ok"?"OK":k==="warn"?"CHECK":"FIX")+'</span><span>'+t+'</span>';
+    host.appendChild(d);
+  });
+  const end=roadEnd();
+  const dl=covered("ditchL")+covered("ditchR");
+  const ud=covered("udL")+covered("udR");
+  const byFam={}; S.points.filter(p=>p.type==="PR_CULVERT").forEach(p=>{
+    const k=p.cells+"/"+p.size+" "+p.family; byFam[k]=(byFam[k]||0)+1;});
+  const rows=[["Road length",(end/1000).toFixed(3)+" km"],
+    ["Entries recorded",S.runs.length],["Point items",S.points.length],
+    ["V-ditch",Math.round(dl).toLocaleString()+" m"],
+    ["Concrete U-drain",Math.round(ud).toLocaleString()+" m"]].concat(Object.entries(byFam));
+  $("summary").innerHTML=rows.map(([k,v])=>"<dt>"+k+"</dt><dd>"+v+"</dd>").join("");
+}
+
+/* -------------------------------------------------------------- render */
+function after(){ renderAll(); save(); }
+function renderAll(){
+  $("hRoad").textContent=S.name||"Untitled road";
+  $("hCode").textContent=S.code||"";
+  $("hCh").textContent=fmt(S.ch);
+  $("sampleTag").hidden=!S.sample;
+  const run=S.runs.filter(r=>r.to===null).length;
   $("openBox").innerHTML='<div class="open"><span class="dot"></span>'+
-    '<span class="t">Recording section '+fmt(o.from)+' &rarr; '+
-      (o.to===""?"…":fmt(o.to))+'</span>'+
-    '<span class="m">at '+fmt(S.ch)+'</span></div>';
+    '<span class="t">Recording at '+fmt(S.ch)+'</span><span class="m">'+
+    (run? run+" item"+(run===1?"":"s")+" running" : "nothing running")+'</span></div>';
+  renderItems(); renderLog(); renderPointList(); renderSetup(); renderChecks(); draw();
 }
-function renderSectionList(){
-  const host=$("slist");
-  if(!S.sections.length){host.innerHTML='<div class="empty">No sections yet. Stamp <strong>From</strong> where you are, record what you see, walk to where the road changes, stamp <strong>To</strong> and tap <strong>Save section</strong>.</div>';return;}
-  host.innerHTML="";
-  S.sections.slice().reverse().forEach((s)=>{
-    const i=S.sections.indexOf(s);
-    const b=document.createElement("button"); b.type="button"; b.className="sitem";
-    const bits=[];
-    if(s.veg)bits.push(s.veg);
-    if(s.ditchL||s.ditchR)bits.push("ditch "+(s.ditchL||"–")+"/"+(s.ditchR||"–"));
-    if(s.udL||s.udR)bits.push("U-drain "+(s.udL||"–")+"/"+(s.udR||"–"));
-    if(s.cutH)bits.push("cut "+s.cutH+"cm");
-    if(s.fillH)bits.push("fill "+s.fillH+"cm");
-    if(s.town)bits.push("township");
-    b.innerHTML='<span class="cond" style="background:'+(CONDCOL[s.cond]||"var(--edge)")+'"></span>'+
-      '<span><span class="rng">'+fmt(s.from)+' → '+fmt(s.to)+'</span><br>'+
-      '<span class="desc">'+(bits.join(" · ")||"nothing recorded")+'</span></span>'+
-      '<span class="badge">'+(s.cond||"—")+'</span>';
-    b.onclick=()=>{ if(confirm("Reopen this section for editing? It comes out of the list and its limits and settings load back in."))
-      {S.open=Object.assign({},s); S.sections.splice(i,1); renderAll(); save();} };
-    host.appendChild(b);
-  });
-}
+</script>
+<script>
+"use strict";
+/* ------------------------------------------------- points / setup views */
 function renderPointList(){
   const host=$("plist");
   if(!S.points.length){host.innerHTML='<div class="empty">No point items yet.</div>';return;}
   host.innerHTML="";
   S.points.slice().sort((a,b)=>a.ch-b.ch).forEach(p=>{
-    const d=document.createElement("div"); d.className="sitem";
+    const d=document.createElement("div"); d.className="logrow";
     const what=p.type==="PR_CULVERT"?(p.cells+"/"+p.size+" "+p.family+", "+p.len+" m "+p.orient)
       :(p.qty!==""&&p.qty!=null?p.qty+" "+(QTY_TYPES[p.type]||""):"");
-    d.innerHTML='<span class="cond" style="background:var(--accent)"></span>'+
-      '<span><span class="rng">'+fmt(p.ch)+'</span><br><span class="desc">'+p.type.replace(/_/g," ")+
-      (what?" · "+what:"")+'</span></span>'+
-      '<button type="button" class="act ghost small" aria-label="Remove point at '+fmt(p.ch)+'">Remove</button>';
-    d.querySelector("button").onclick=()=>{S.points.splice(S.points.indexOf(p),1);renderAll();save();};
+    d.innerHTML='<span class="rng">'+fmt(p.ch)+'</span><span class="desc">'+
+      p.type.replace(/_/g," ")+(what?" · "+what:"")+'</span>'+
+      '<span class="logb"><button type="button" class="act ghost small">Remove</button></span>';
+    d.querySelector("button").onclick=()=>{S.points.splice(S.points.indexOf(p),1);after();};
     host.appendChild(d);
   });
 }
@@ -736,9 +908,9 @@ function renderSetup(){
     t.appendChild(tr);
   });
   t.querySelectorAll("input").forEach(inp=>inp.onchange=()=>{
-    const v=inp.value.trim(); S.rules[+inp.dataset.r][+inp.dataset.c]=v===""?null:(isNaN(+v)?v.toUpperCase():+v); save();});
-  const host=$("paramList"); host.innerHTML="";
-  let sec=null;
+    const v=inp.value.trim();
+    S.rules[+inp.dataset.r][+inp.dataset.c]=v===""?null:(isNaN(+v)?v.toUpperCase():+v); save();});
+  const host=$("paramList"); host.innerHTML=""; let sec=null;
   PARAMS.forEach(p=>{
     const s=Object.keys(SECTIONS).map(Number).filter(r=>r<p[0]).pop();
     if(SECTIONS[s]!==sec){sec=SECTIONS[s];const h=document.createElement("h2");h.textContent=sec;host.appendChild(h);}
@@ -750,159 +922,38 @@ function renderSetup(){
   });
 }
 
-/* --------------------------------------------------------- line diagram */
-function draw(){
-  const c=$("strip"), w=c.clientWidth||360; c.width=w*devicePixelRatio; c.height=34*devicePixelRatio;
-  const g=c.getContext("2d"); g.scale(devicePixelRatio,devicePixelRatio); g.clearRect(0,0,w,34);
-  const end=Math.max(roadEnd(),S.ch,1000), X=m=>4+(w-8)*(m/end);
-  const cs=getComputedStyle(document.documentElement);
-  g.fillStyle="rgba(255,255,255,.18)"; g.fillRect(4,14,w-8,6);
-  S.sections.forEach(s=>{
-    g.fillStyle=cs.getPropertyValue(String(CONDCOL[s.cond]||"").replace(/var\(|\)/g,"").trim())||"#889";
-    const x0=X(s.from), w0=Math.max(1,X(s.to)-X(s.from)-1.5);   // 1.5px gap shows each section
-    g.fillRect(x0,12,w0,10);
-  });
-  if(S.open){const end=S.open.to===""?S.ch:Number(S.open.to);
-    g.fillStyle=cs.getPropertyValue("--live").trim();
-    g.fillRect(X(S.open.from),12,Math.max(1,X(end)-X(S.open.from)),10);}
-  S.points.forEach(p=>{const x=X(p.ch);g.fillStyle="#fff";g.fillRect(x-1,6,2,22);});
-  g.fillStyle="rgba(255,255,255,.85)"; g.fillRect(X(S.ch)-1,3,2,28);
+/* --------------------------------------------------------------- sample */
+function sampleState(){
+  const s=blankState();
+  s.name="Osubeng Jn - Osubeng"; s.code="ER-KWS-009"; s.region="Eastern Region";
+  s.district="Kwahu South"; s.by="Dr. Ampadu"; s.date="2026-08-05"; s.sample=true;
+  const at=(ch,fn)=>{S=s; s.ch=ch; fn();};
+  S=s;
+  s.ch=0;    startRun("veg","GB"); startRun("ditchL","RE"); startRun("ditchR","RE");
+             startRun("cond","P"); startRun("ovrS2","N");
+  s.ch=1200; startRun("cut",[120,4]);
+  s.ch=1800; stopRun("cut");
+  s.ch=4400; startRun("veg","LB"); startRun("fillw",[60,4]);
+  s.ch=5000; stopRun("fillw");
+  s.ch=7000; stopRun("ditchL"); stopRun("ditchR"); startRun("udL",60); startRun("udR",60);
+  s.ch=8000; ["veg","cond","ovrS2","udL","udR"].forEach(stopRun);
+  s.points=[
+    {ch:500,type:"PR_CULVERT",family:"PC",cells:2,size:"900",len:10,orient:"Skew",qty:"",note:"",photo:null},
+    {ch:1500,type:"PR_CULVERT",family:"PC",cells:3,size:"1200",len:12,orient:"Right Angle",qty:"",note:"",photo:null},
+    {ch:5000,type:"PR_CULVERT",family:"BC",cells:2,size:"3x3",len:12,orient:"Right Angle",qty:"",note:"",photo:null}];
+  s.params.P_OH_Sub=6; s.params.P_OH_Base=9; s.params.P_SignsPerKm=2; s.params.P_RampsPerKm=0.25;
+  return s;
 }
 
-/* -------------------------------------------------------------- checks */
-function checkList(){
-  const out=[], end=roadEnd();
-  const add=(k,t)=>out.push([k,t]);
-  if(!S.name.trim()) add("stop","Road name is empty — 00_Project needs it.");
-  else add("ok","Road identified: "+S.name+(S.code?" ("+S.code+")":""));
-  if(end<=0) add("stop","No road recorded yet.");
-  else add("ok","Road length "+(end/1000).toFixed(3)+" km, measured from the furthest chainage.");
-  let prev=0, gaps=0, bad=0;
-  S.sections.forEach(s=>{ if(Math.abs(s.from-prev)>0.5) gaps++;
-                          if(!(s.to>s.from)) bad++; prev=s.to; });
-  if(bad) add("stop", bad+" section(s) have a To that is not beyond the From.");
-  add(gaps?"stop":"ok", gaps? gaps+" gap or overlap between sections — the road is not continuous."
-    : S.sections.length+" sections, continuous from 0+000 with no gaps or overlaps.");
-  const noCond=S.sections.filter(s=>!s.cond).length;
-  add(noCond?"warn":"ok", noCond? noCond+" section(s) have no surface condition — pavement will be blank there."
-    : "Every section carries a surface condition.");
-  const badCulv=S.points.filter(p=>p.type==="PR_CULVERT"&&(!p.family||!p.size||!p.len)).length;
-  add(badCulv?"stop":"ok", badCulv? badCulv+" proposed culvert(s) missing family, size or length — they will never be priced."
-    : S.points.filter(p=>p.type==="PR_CULVERT").length+" proposed culverts, each with family, size and length.");
-  const badQty=S.points.filter(p=>QTY_TYPES[p.type]&&(p.qty===""||p.qty==null)).length;
-  add(badQty?"stop":"ok", badQty? badQty+" gully, turnout or pitching item(s) with no quantity."
-    : "Every measured point item carries a quantity.");
-  const beyond=S.points.filter(p=>p.ch>end+0.5).length;
-  if(beyond) add("warn",beyond+" point item(s) lie beyond the last surveyed section — check for a typo.");
-  const b=+S.params.P_BinderPct, cu=+S.params.P_CutterPct;
-  add(Math.abs(b+cu-1)<1e-6?"ok":"stop", Math.abs(b+cu-1)<1e-6
-    ? "Binder and cutter oil come to 1.00." : "Binder ("+b+") + cutter oil ("+cu+") = "+(b+cu)+", not 1.00.");
-  const unconf=PARAMS.filter(p=>p[1]==="!"&&S.params[p[6]]===p[3]).length;
-  add(unconf?"warn":"ok", unconf? unconf+" of 17 flagged constants are still at the template figure — confirm them with the design engineer."
-    : "All 17 flagged constants have been set for this road.");
-  return out;
-}
-function renderChecks(){
-  const host=$("checks"); host.innerHTML="";
-  checkList().forEach(([k,t])=>{
-    const d=document.createElement("div"); d.className="check";
-    d.innerHTML='<span class="mark '+k+'">'+(k==="ok"?"OK":k==="warn"?"CHECK":"FIX")+'</span><span>'+t+'</span>';
-    host.appendChild(d);
-  });
-  const end=roadEnd(), dl=S.sections.reduce((a,s)=>a+((s.ditchL?1:0)+(s.ditchR?1:0))*(s.to-s.from),0);
-  const ud=S.sections.reduce((a,s)=>a+((s.udL?1:0)+(s.udR?1:0))*(s.to-s.from),0);
-  const byFam={}; S.points.filter(p=>p.type==="PR_CULVERT").forEach(p=>{
-    const k=p.cells+"/"+p.size+" "+p.family; byFam[k]=(byFam[k]||0)+1;});
-  const rows=[["Road length",(end/1000).toFixed(3)+" km"],["Sections",S.sections.length],
-    ["Point items",S.points.length],["V-ditch",dl.toLocaleString()+" m"],
-    ["Concrete U-drain",ud.toLocaleString()+" m"]].concat(Object.entries(byFam));
-  $("summary").innerHTML=rows.map(([k,v])=>"<dt>"+k+"</dt><dd>"+v+"</dd>").join("");
-}
+/* -------------------------------------------------------------- wiring */
+function setCh(v){S.ch=Math.max(0,Math.round(v||0));after();}
+$("hCh").onclick=()=>{const d=$("hCh"),i=$("hChEdit");i.value=S.ch;d.hidden=true;i.hidden=false;i.focus();i.select();};
+function chClose(commit){const d=$("hCh"),i=$("hChEdit");
+  if(commit&&i.value!=="") setCh(+i.value); i.hidden=true; d.hidden=false; $("hCh").textContent=fmt(S.ch);}
+$("hChEdit").onblur=()=>chClose(true);
+$("hChEdit").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();chClose(true);}
+                           if(e.key==="Escape")chClose(false);};
 
-/* ------------------------------------------------------------- render */
-function renderAll(){
-  $("hRoad").textContent=S.name||"Untitled road";
-  $("hCode").textContent=S.code||"";
-  $("hCh").textContent=fmt(S.ch);
-  $("sampleTag").hidden=!S.sample;
-  if(!S.open) S.open=newOpen(S.sections.length?S.sections[S.sections.length-1].to:0,
-                             S.sections[S.sections.length-1]);
-  renderSectionPanel(); renderSectionList(); renderPointList(); renderSetup(); renderChecks(); draw();
-}
-</script>
-<script>
-"use strict";
-/* --------------------------------------------------------------- wiring */
-// overrides live behind a fold: faithful to Form C, out of the way in the field
-(function(){
-  const d=document.createElement("details");
-  d.style.cssText="border:1px solid var(--edge);border-radius:8px;padding:0 10px";
-  d.innerHTML='<summary style="cursor:pointer;padding:11px 0;font-size:12px;color:var(--dim);'+
-    'font-weight:600;letter-spacing:.05em;text-transform:uppercase">Departs from the rule (rare)</summary>'+
-    '<div class="pad" style="padding:0 0 12px">'+
-    '<p class="note">Only where this section genuinely differs from the E_Rules treatment for its condition.</p>'+
-    '<div class="grid2">'+
-    '<label>Treatment<select id="ovrTreat"><option value=""></option><option>BLADE</option>'+
-      '<option>RESHAPE</option><option>SCARIFY</option><option>NONE</option></select></label>'+
-    '<label>Sub-base cm<input id="ovrSub" type="text" inputmode="decimal"></label>'+
-    '<label>Base cm<input id="ovrBase" type="text" inputmode="decimal"></label>'+
-    '<label>Prime<select id="ovrPrime"><option value=""></option><option>Y</option><option>N</option></select></label>'+
-    '<label>Seal 1<select id="ovrS1"><option value=""></option><option>Y</option><option>N</option></select></label>'+
-    '<label>Seal 2<select id="ovrS2"><option value=""></option><option>Y</option><option>N</option></select></label>'+
-    '</div></div>';
-  const btn=$("endBtn"); btn.parentNode.insertBefore(d,btn);
-  ["ovrTreat","ovrSub","ovrBase","ovrPrime","ovrS1","ovrS2"].forEach(k=>{
-    $(k).onchange=()=>{S.open[k]=$(k).value.trim();save();};});
-})();
-
-/* chainage — tap the readout to correct GPS drift at a known point */
-function setCh(v){S.ch=Math.max(0,Math.round(v||0));$("hCh").textContent=fmt(S.ch);
-  renderSectionPanel();draw();save();}
-function chEditOpen(){
-  const d=$("hCh"), i=$("hChEdit");
-  i.value=S.ch; d.hidden=true; i.hidden=false; i.focus(); i.select();
-}
-function chEditClose(commit){
-  const d=$("hCh"), i=$("hChEdit");
-  if(commit && i.value!=="") setCh(+i.value);
-  i.hidden=true; d.hidden=false;
-}
-$("hCh").onclick=chEditOpen;
-$("hChEdit").onblur=()=>chEditClose(true);
-$("hChEdit").onkeydown=e=>{ if(e.key==="Enter"){e.preventDefault();chEditClose(true);}
-                            if(e.key==="Escape"){chEditClose(false);} };
-
-/* section limits — typed or stamped from the running chainage */
-$("secFrom").oninput=()=>{S.open.from=$("secFrom").value===""?"":+$("secFrom").value;
-  renderSectionPanel();draw();save();};
-$("secTo").oninput  =()=>{S.open.to  =$("secTo").value===""?"":+$("secTo").value;
-  renderSectionPanel();draw();save();};
-$("pinFrom").onclick=()=>{S.open.from=S.ch;renderSectionPanel();draw();save();};
-$("pinTo").onclick  =()=>{S.open.to  =S.ch;renderSectionPanel();draw();save();};
-
-/* section fields */
-["raiseFill","cutH","cutW","fillH","fillW","scourSp"].forEach(k=>{
-  $(k).oninput=()=>{S.open[k]=$(k).value===""?"":+$(k).value;save();};});
-["ditchL","ditchR","udL","udR","scour"].forEach(k=>{
-  $(k).onchange=()=>{S.open[k]=$(k).value;save();draw();};});
-$("sNote").oninput=()=>{S.open.note=$("sNote").value;save();};
-
-$("endBtn").onclick=()=>{
-  const o=S.open, from=Number(o.from), to=Number(o.to);
-  if(o.from===""||isNaN(from)){alert("Stamp or type the From chainage first.");return;}
-  if(o.to===""||isNaN(to)){alert("Stamp the To chainage where this section ends — you are at "+fmt(S.ch)+".");return;}
-  if(to<=from){alert("To ("+fmt(to)+") must be beyond From ("+fmt(from)+").");return;}
-  const prev=S.sections.length?S.sections[S.sections.length-1].to:null;
-  if(prev!==null&&Math.abs(from-prev)>0.5&&
-     !confirm("This section starts at "+fmt(from)+" but the last one ended at "+fmt(prev)+
-              ".\n\nThat leaves a gap or overlap. Save anyway?")) return;
-  const s=Object.assign({},o,{from:from,to:to});
-  S.sections.push(s);
-  S.open=newOpen(to,s);
-  renderAll(); save();
-};
-
-/* GPS: distance travelled along the road, never an authority */
 let watch=null,last=null;
 function hav(a,b){const R=6371000,t=x=>x*Math.PI/180;
   const dLa=t(b.lat-a.lat),dLo=t(b.lon-a.lon);
@@ -917,14 +968,13 @@ $("gpsBtn").onclick=()=>{
   watch=navigator.geolocation.watchPosition(pos=>{
     b.classList.add("on"); b.textContent="GPS ±"+Math.round(pos.coords.accuracy)+"m";
     const p={lat:pos.coords.latitude,lon:pos.coords.longitude};
-    if(last){const d=hav(last,p); if(d>3&&d<120) setCh(S.ch+d);}   // ignore jitter and jumps
+    if(last){const d=hav(last,p); if(d>3&&d<120) setCh(S.ch+d);}
     last=p;
-  },err=>{watch=null;b.classList.remove("on");
-    b.textContent="GPS blocked"; console.log("geolocation:",err&&err.message);},
+  },err=>{watch=null;b.classList.remove("on");b.textContent="GPS blocked";
+    console.log("geolocation:",err&&err.message);},
    {enableHighAccuracy:true,maximumAge:2000,timeout:15000});
 };
 
-/* points */
 opt($("pType"),PTYPES.map(t=>[t,t.replace(/_/g," ")]),"PR_CULVERT");
 opt($("pFamily"),[["PC","PC  pipe"],["BC","BC  box"],["UC","UC  U-culvert"]],"PC");
 opt($("pCells"),[["1","1"],["2","2"],["3","3"],["4","4"]],"1");
@@ -954,26 +1004,22 @@ $("addPt").onclick=()=>{
   if(QTY_TYPES[t]){p.qty=num($("pQty").value);
     if(p.qty===""){alert("A "+t.replace(/_/g," ").toLowerCase()+" needs a quantity in "+QTY_TYPES[t]+".");return;}}
   S.points.push(p); photo=null; $("pPhoto").value=""; $("pPreview").hidden=true;
-  $("pNote").value=""; $("pQty").value=""; $("pSize").value="";
-  renderAll(); save();
+  $("pNote").value=""; $("pQty").value=""; $("pSize").value=""; after();
 };
 
-/* setup */
 [["mName","name"],["mCode","code"],["mRegion","region"],["mDistrict","district"],["mBy","by"],["mDate","date"]]
   .forEach(([id,k])=>{$(id).oninput=()=>{S[k]=$(id).value;S.sample=false;
     $("hRoad").textContent=S.name||"Untitled road";$("hCode").textContent=S.code||"";
     $("sampleTag").hidden=true;save();};});
 $("newRoad").onclick=()=>{ if(!confirm("Start a new road? The survey on this device will be replaced. Export first if you need it."))return;
-  S=blankState(); renderAll(); save(); };
-$("loadSample").textContent="Load example road";
-$("loadSample").onclick=()=>{ if(!confirm("Reload the Osubeng example? Anything recorded here will be replaced."))return;
-  S=sampleState(); renderAll(); save(); };
+  S=blankState(); after(); };
+$("loadSample").onclick=()=>{ if(!confirm("Load the Osubeng example? Anything recorded here will be replaced."))return;
+  S=sampleState(); after(); };
 
-/* export — hosted app saves directly; a claude.ai preview goes through the viewer */
 let DL;
 async function getDL(){
   if(DL!==undefined) return DL;
-  try{ DL = (window.claude && typeof claude.use==="function") ? await claude.use("downloads") : null; }
+  try{ DL=(window.claude&&typeof claude.use==="function")?await claude.use("downloads"):null; }
   catch(e){ DL=null; }
   return DL;
 }
@@ -985,11 +1031,8 @@ async function saveFile(bytes,name,mime){
     const c=err&&err.code;
     if(c==="declined"||c==="rate_limited") return;
     if(c==="rejected_extension"||c==="extension_not_enabled"){
-      alert("This preview link cannot hand over spreadsheet files.\n\n"+
-            "Export the raw data as .json here, or install the app on the phone "+
-            "(or host it on your own address) where the survey workbook export works.");
-      return;
-    }
+      alert("This preview link cannot hand over spreadsheet files.\n\nExport the raw data as .json here, or install the app on the phone (or host it on your own address) where the survey workbook export works.");
+      return; }
     alert("Save failed ("+(c||"unknown")+").");
   }
 }
@@ -998,7 +1041,6 @@ $("dlXlsx").onclick=async()=>{ try{ await saveFile(buildWorkbook(),slug()+"_Cond
   catch(e){ alert("Export failed: "+e.message); } };
 $("dlJson").onclick=()=>saveFile(te.encode(JSON.stringify(S,null,1)),slug()+"_survey.json","application/json");
 
-/* nav */
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-current",String(x===b)));
   ["survey","points","setup","export"].forEach(v=>$("v-"+v).hidden=(v!==b.dataset.v));
@@ -1007,16 +1049,15 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
 });
 addEventListener("resize",draw);
 
-/* boot */
 (async()=>{
   const saved=await load();
-  S = saved || blankState();          // opens empty — the example is a button in Setup
+  S = saved || blankState();
   if(!S.params) S.params=Object.fromEntries(PARAMS.map(p=>[p[6],p[3]]));
+  if(!S.runs) S.runs=[]; if(!S.seq) S.seq=(Math.max(0,...S.runs.map(r=>r.id||0))+1);
   renderAll();
   try{ if("serviceWorker" in navigator && location.protocol==="https:")
         navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){}
 })();
 </script>
-
 </body>
 </html>
