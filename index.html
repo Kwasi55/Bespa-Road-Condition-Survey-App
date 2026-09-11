@@ -70,6 +70,37 @@ input.chedit{width:5.2em;background:rgba(255,255,255,.14);border:1px solid rgba(
 .gpsline .warn{color:#ffd28a}
 #strip{height:34px;width:100%;display:block;margin-bottom:-1px}
 
+/* ---------- survey lifecycle bar ---------- */
+.svbar{margin:12px 12px 0;border:1px solid var(--hair);border-radius:10px;background:var(--card);
+  padding:11px 12px;display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.svbar .sv-badge{font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.sv-new{background:#e6e3dc;color:#4a463e}
+.sv-run{background:var(--live);color:#fff}
+.sv-pau{background:#b4540e;color:#fff}
+.sv-end{background:var(--accent);color:#fff}
+.svbar .sv-txt{flex:1 1 150px;font-size:12px;line-height:1.4;color:var(--dim)}
+.svbar .sv-txt b{color:var(--ink);font-weight:600}
+.sv-btns{flex:1 1 100%;display:flex;gap:8px}
+.sv-btns .act{flex:1;min-height:40px;padding:0 10px;font-size:13px}
+.svbar input[type=number]{flex:0 0 5.5em;width:5.5em;min-height:40px;text-align:center}
+.sv-ask{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sv-ask .sv-lab{flex:1 1 100%;font-size:12px;color:var(--dim)}
+.sv-ask .act{flex:1;min-height:40px;padding:0 10px;font-size:13px}
+.locked .item,.locked .ptform{opacity:.45}
+.open.quiet{background:var(--sunk);border-color:var(--hair)}
+.open.quiet .dot{background:var(--faint)}
+.open.quiet .t{color:var(--dim)}
+.locked .item button,.locked .item select,.locked .item input{pointer-events:none}
+.arow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:9px 0;
+  border-bottom:1px solid var(--hair)}
+.arow:last-child{border-bottom:0}
+.arow .an{flex:1 1 100%;font-size:13px;line-height:1.35}
+.arow .abtn{flex:1 1 100%;display:flex;gap:6px}
+.arow .abtn .act{flex:1}
+.arow .an small{display:block;color:var(--dim);font-family:var(--f-mono);font-size:11px}
+.arow .act{min-height:32px;padding:0 10px;font-size:12px}
+
 /* ---------- nav ---------- */
 nav{display:flex;background:var(--accent);border-top:1px solid rgba(255,255,255,.16)}
 nav button{flex:1;appearance:none;background:none;border:0;color:var(--on-accent);opacity:.65;
@@ -228,6 +259,7 @@ button.act.end{background:var(--paper);border-color:var(--live);color:var(--live
   </header>
 
   <main>
+    <div class="svbar" id="svBar"></div>
     <section class="view" id="v-survey">
       <div id="sampleTag" class="sample" hidden>Example road loaded — Osubeng Jn to Osubeng. Start a new road in Setup.</div>
       <div id="openBox"></div>
@@ -312,6 +344,10 @@ button.act.end{background:var(--paper);border-color:var(--live);color:var(--live
       <div class="panel"><h3>Checks</h3><div id="checks"></div></div>
       <div class="panel"><h3>Survey summary</h3><div class="pad"><dl class="kv" id="summary"></dl></div></div>
       <div class="panel">
+        <h3>Finished roads held on this phone</h3>
+        <div class="pad"><div id="archList"></div></div>
+      </div>
+      <div class="panel">
         <h3>Hand over to the Master Estimator</h3>
         <div class="pad">
           <button class="act" type="button" id="dlXlsx">Export survey workbook (.xlsx)</button>
@@ -382,21 +418,57 @@ function idb(){return new Promise(res=>{try{
   r.onupgradeneeded=()=>r.result.createObjectStore("kv");
   r.onsuccess=()=>res(r.result); r.onerror=()=>res(null);
 }catch(e){res(null)}});}
-async function save(){
-  const j=JSON.stringify(S);
+async function kvPut(k,j){
   try{ if(!DB) DB=await idb();
     if(DB){await new Promise((ok,no)=>{const t=DB.transaction("kv","readwrite");
-      t.objectStore("kv").put(j,"state"); t.oncomplete=ok; t.onerror=no;}); return;} }catch(e){}
-  try{localStorage.setItem(KEY,j)}catch(e){}
+      t.objectStore("kv").put(j,k); t.oncomplete=ok; t.onerror=no;}); return true;} }catch(e){}
+  try{localStorage.setItem(KEY+":"+k,j); return true;}catch(e){return false;}
 }
-async function load(){
+async function kvGet(k){
   try{ if(!DB) DB=await idb();
     if(DB){const v=await new Promise(ok=>{const t=DB.transaction("kv","readonly");
-      const q=t.objectStore("kv").get("state"); q.onsuccess=()=>ok(q.result); q.onerror=()=>ok(null);});
-      if(v) return JSON.parse(v);} }catch(e){}
-  try{const v=localStorage.getItem(KEY); if(v) return JSON.parse(v);}catch(e){}
+      const q=t.objectStore("kv").get(k); q.onsuccess=()=>ok(q.result); q.onerror=()=>ok(null);});
+      if(v!=null) return v;} }catch(e){}
+  try{return localStorage.getItem(KEY+":"+k);}catch(e){return null;}
+}
+async function kvDel(k){
+  try{ if(!DB) DB=await idb();
+    if(DB){await new Promise(ok=>{const t=DB.transaction("kv","readwrite");
+      t.objectStore("kv").delete(k); t.oncomplete=ok; t.onerror=ok;});} }catch(e){}
+  try{localStorage.removeItem(KEY+":"+k);}catch(e){}
+}
+async function save(){ return kvPut("state", JSON.stringify(S)); }
+async function load(){
+  const v=await kvGet("state");
+  if(v){ try{return JSON.parse(v);}catch(e){} }
+  try{const o=localStorage.getItem(KEY); if(o) return JSON.parse(o);}catch(e){}
   return null;
 }
+
+/* ------------------------------------------------------------- the archive
+   A finished road stays on the phone until it has been loaded on a desktop.
+   Each survey is its own record; "archive" holds only the short index, so
+   listing them never has to read the photographs back. */
+let ARCH=[];
+async function archLoad(){
+  const v=await kvGet("archive");
+  try{ ARCH = v? JSON.parse(v) : []; }catch(e){ ARCH=[]; }
+}
+async function archSave(){ return kvPut("archive", JSON.stringify(ARCH)); }
+function archCard(st){
+  const end=Math.max(0, ...st.runs.map(r=>r.to===null?st.ch:r.to), ...st.points.map(p=>p.ch||0));
+  return {id:st.id, name:st.name||"Untitled road", code:st.code||"", date:st.date||"",
+          ended:st.endedAt||"", length:end, runs:st.runs.length, points:st.points.length};
+}
+async function archPut(st){
+  const ok=await kvPut("survey:"+st.id, JSON.stringify(st));
+  if(!ok){ alert("This phone is out of space — export the finished road before starting another."); return false; }
+  ARCH=ARCH.filter(a=>a.id!==st.id); ARCH.unshift(archCard(st)); await archSave(); return true;
+}
+async function archGet(id){ const v=await kvGet("survey:"+id);
+  try{ return v? JSON.parse(v) : null; }catch(e){ return null; } }
+async function archDrop(id){ await kvDel("survey:"+id);
+  ARCH=ARCH.filter(a=>a.id!==id); await archSave(); }
 
 /* -------------------------------------------------------------- helpers */
 const num=v=>{const n=parseFloat(v);return isNaN(n)?"":n;};
@@ -447,8 +519,14 @@ function blankState(){
     date:new Date().toISOString().slice(0,10),
     rules:JSON.parse(JSON.stringify(RULES0)),
     params:Object.fromEntries(PARAMS.map(p=>[p[6],p[3]])),
-    ch:0, runs:[], points:[], seq:1, sample:false};
+    ch:0, runs:[], points:[], seq:1, sample:false,
+    id:"s"+Date.now().toString(36), status:"new",
+    startedAt:null, endedAt:null, startCh:0, pauses:[]};
 }
+/* A survey only accepts entries while it is RUNNING. Paused or ended, the
+   panels are read-only — a forgotten pause used to stamp a whole morning's
+   work at one chainage. */
+const running = () => S.status==="running";
 let S=blankState();
 
 /* ------------------------------------------------------------ run algebra */
@@ -584,6 +662,11 @@ function buildWorkbook(){
     ["Road name",S.name],["Road code",S.code],["Region",S.region],["District",S.district],
     ["Surveyed by",S.by],["Date of survey",S.date],
     ["Road length (m)",end],["Entries recorded",S.runs.length],["Point items",S.points.length],
+    ["Survey status", S.status==="ended" ? "ENDED — complete"
+                    : S.status==="paused"? "PAUSED — INCOMPLETE, do not price this"
+                    : S.status==="running"? "STILL RECORDING — INCOMPLETE, do not price this"
+                    : "NOT STARTED"],
+    ["Started",S.startedAt||""],["Ended",S.endedAt||""],
     [],
     ["HOW TO LOAD THIS"],
     ["1","Open this file and the Master Estimator side by side."],
@@ -733,6 +816,7 @@ function itemCard(k){
     '<span class="istate '+cls+'">'+esc2(txt)+'</span></div><div class="ictl">'+ctl+'</div>'+endBtn;
   d.querySelectorAll("[data-a]").forEach(el=>{
     const a=el.dataset.a;
+    if(!running()){ el.disabled=true; return; }
     if(a==="flag") el.onclick=()=>{ openRun(k)?stopRun(k):startRun(k,true); after(); };
     if(a==="code") el.onclick=()=>{ startRun(k,el.dataset.v); after(); };
     if(a==="sel")  el.onchange=()=>{ const v=el.value;
@@ -860,6 +944,14 @@ function checkList(){
 }
 function renderChecks(){
   const host=$("checks"); host.innerHTML="";
+  if(S.status!=="ended"){
+    const d=document.createElement("div"); d.className="check";
+    d.innerHTML='<span class="mark warn">CHECK</span><span>'+
+      (S.status==="new" ? "The survey has not been started."
+       : "The survey has not been ended. Export now and the workbook is marked INCOMPLETE.")+
+      '</span>';
+    host.appendChild(d);
+  }
   checkList().forEach(([k,t])=>{
     const d=document.createElement("div"); d.className="check";
     d.innerHTML='<span class="mark '+k+'">'+(k==="ok"?"OK":k==="warn"?"CHECK":"FIX")+'</span><span>'+t+'</span>';
@@ -885,10 +977,185 @@ function renderAll(){
   $("hCh").textContent=fmt(S.ch);
   $("sampleTag").hidden=!S.sample;
   const run=S.runs.filter(r=>r.to===null).length;
-  $("openBox").innerHTML='<div class="open"><span class="dot"></span>'+
-    '<span class="t">Recording at '+fmt(S.ch)+'</span><span class="m">'+
-    (run? run+" item"+(run===1?"":"s")+" running" : "nothing running")+'</span></div>';
+  const word={new:"Not started",running:"Recording at",paused:"Paused at",ended:"Ended at"}[S.status]||"Recording at";
+  $("openBox").innerHTML='<div class="open'+(running()?"":" quiet")+'"><span class="dot"></span>'+
+    '<span class="t">'+word+(S.status==="new"?"":" "+fmt(S.ch))+'</span><span class="m">'+
+    (S.status==="new" ? "tap START SURVEY"
+      : run? run+" item"+(run===1?"":"s")+" running" : "nothing running")+'</span></div>';
+  renderSvBar(); renderArch();
   renderItems(); renderLog(); renderPointList(); renderSetup(); renderChecks(); draw();
+  $("v-survey").classList.toggle("locked",!running());
+  $("v-points").classList.toggle("locked",!running());
+}
+
+/* ------------------------------------------------------- survey lifecycle */
+const hhmm = t => t ? new Date(t).toTimeString().slice(0,5) : "";
+const BADGE = {new:["sv-new","not started"], running:["sv-run","recording"],
+               paused:["sv-pau","paused"],   ended:["sv-end","ended"]};
+let askMode=null;                                   // "start" | "resume" | null
+
+function btn(label,cls,fn){
+  const b=document.createElement("button");
+  b.type="button"; b.className="act "+cls; b.textContent=label; b.onclick=fn;
+  return b;
+}
+function renderSvBar(){
+  const host=$("svBar"); host.innerHTML="";
+  const [cls,word]=BADGE[S.status]||BADGE.new;
+  const bd=document.createElement("span"); bd.className="sv-badge "+cls; bd.textContent=word;
+  host.appendChild(bd);
+
+  const txt=document.createElement("span"); txt.className="sv-txt"; host.appendChild(txt);
+  const end=roadEnd();
+
+  /* While the bar is asking for a chainage it shows nothing else — the answer
+     is the only thing to give it. */
+  if(askMode){
+    txt.textContent = askMode==="start" ? "Starting a new road." : "Coming back from a pause.";
+    const row=document.createElement("div"); row.className="sv-ask";
+    const lab=document.createElement("span"); lab.className="sv-lab";
+    lab.textContent = askMode==="start" ? "Chainage at the start of this road (m)"
+                                        : "Chainage you are standing at now (m)";
+    const inp=document.createElement("input");
+    inp.type="number"; inp.step="1"; inp.min="0"; inp.inputMode="numeric";
+    inp.value = askMode==="start" ? 0 : S.ch;
+    const mode=askMode;
+    row.appendChild(lab); row.appendChild(inp);
+    row.appendChild(btn(mode==="start"?"Begin":"Resume","",()=>{
+      const v=inp.value===""?0:Math.max(0,+inp.value);
+      askMode=null; beginOrResume(mode,v);
+    }));
+    row.appendChild(btn("Cancel","ghost",()=>{askMode=null;renderSvBar();}));
+    host.appendChild(row); inp.focus(); inp.select();
+    return;
+  }
+
+  const bar=document.createElement("div"); bar.className="sv-btns";
+  const add=b=>bar.appendChild(b);
+  host.appendChild(bar);
+
+  if(S.status==="new"){
+    txt.innerHTML="Put the road name, code and surveyor on <b>Setup</b>, then start.";
+    add(btn("START SURVEY","",()=>{askMode="start";renderSvBar();}));
+  }else if(S.status==="running"){
+    txt.innerHTML="Started <b>"+hhmm(S.startedAt)+"</b> at "+fmt(S.startCh)+
+      " · now <b>"+fmt(S.ch)+"</b> · "+S.runs.length+" entries";
+    add(btn("PAUSE","ghost",pauseSurvey));
+    add(btn("END SURVEY","end",endSurvey));
+  }else if(S.status==="paused"){
+    const last=S.pauses[S.pauses.length-1];
+    txt.innerHTML="Paused <b>"+hhmm(last&&last.from)+"</b> at <b>"+fmt(S.ch)+
+      "</b>. Nothing can be recorded until you resume.";
+    add(btn("RESUME","",()=>{askMode="resume";renderSvBar();}));
+    add(btn("END SURVEY","end",endSurvey));
+  }else{
+    txt.innerHTML="Ended <b>"+hhmm(S.endedAt)+"</b> · "+(end/1000).toFixed(3)+" km · "+
+      S.runs.length+" entries, "+S.points.length+" point items. Export it, then start the next road.";
+    add(btn("REOPEN","ghost",reopenSurvey));
+    add(btn("START NEXT ROAD","",nextRoad));
+  }
+
+}
+
+function missingRoad(){
+  const m=[];
+  if(!String(S.name||"").trim()) m.push("road name");
+  if(!String(S.code||"").trim()) m.push("road code");
+  if(!String(S.by||"").trim())   m.push("surveyed by");
+  return m;
+}
+function beginOrResume(mode,v){
+  if(mode==="start"){
+    const m=missingRoad();
+    if(m.length){ alert("Fill in the "+m.join(", ")+" on Setup first. The estimator needs them to name the road.");
+      renderSvBar(); go("setup"); return; }
+    S.status="running"; S.startedAt=new Date().toISOString(); S.startCh=v; S.pauses=[];
+  }else{
+    const last=S.pauses[S.pauses.length-1];
+    if(last && !last.to) last.to=new Date().toISOString();
+    S.status="running";
+  }
+  setCh(v); go("survey"); after();
+  if(watch===null) $("gpsBtn").onclick();           // bring the GPS back up
+}
+function pauseSurvey(){
+  if(watch!==null) gpsStop();
+  S.status="paused"; S.pauses.push({from:new Date().toISOString(),to:null,ch:S.ch});
+  after();
+}
+function endSurvey(){
+  const open=S.runs.filter(r=>r.to===null).length;
+  if(!confirm("End the survey at "+fmt(S.ch)+"?"+
+      (open? "\n\n"+open+" item(s) still running will be closed here." : "")+
+      "\n\nYou can reopen it if you have missed something."))return;
+  if(watch!==null) gpsStop();
+  S.runs.forEach(r=>{ if(r.to===null) r.to=Math.max(S.ch,r.from); });
+  S.status="ended"; S.endedAt=new Date().toISOString();
+  const last=S.pauses[S.pauses.length-1]; if(last && !last.to) last.to=S.endedAt;
+  after(); go("export");
+}
+function reopenSurvey(){
+  if(!confirm("Reopen this survey? Items closed at the end stay closed — start them again where they carry on."))return;
+  S.status="running"; S.endedAt=null; after(); go("survey");
+}
+async function nextRoad(){
+  if(!await stowCurrent()) return;
+  S=blankState(); askMode=null; after(); go("setup");
+}
+/* Put the survey on the shelf before anything replaces it. */
+async function stowCurrent(){
+  const hasData = S.runs.length || S.points.length;
+  if(!hasData || S.sample) return true;
+  if(S.status==="running"||S.status==="paused"){
+    alert("End the survey first — a road that is still recording cannot be put away."); return false; }
+  if(!await archPut(S)) return false;
+  return true;
+}
+function go(v){
+  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-current",String(x.dataset.v===v)));
+  ["survey","points","setup","export"].forEach(n=>$("v-"+n).hidden=(n!==v));
+  window.scrollTo(0,0);
+}
+
+/* -------------------------------------------------------- archived roads */
+function renderArch(){
+  const host=$("archList"); if(!host) return;
+  host.innerHTML="";
+  if(!ARCH.length){ host.innerHTML='<p class="note">None yet. A road is put here when you end it and start the next one.</p>'; return; }
+  ARCH.forEach(a=>{
+    const d=document.createElement("div"); d.className="arow";
+    const n=document.createElement("div"); n.className="an";
+    n.innerHTML=esc2(a.name)+"<small>"+esc2(a.code||"no code")+" · "+esc2(a.date||"")+" · "+
+      (a.length/1000).toFixed(3)+" km · "+a.runs+" entr"+(a.runs===1?"y":"ies")+
+      ", "+a.points+" point"+(a.points===1?"":"s")+"</small>";
+    d.appendChild(n);
+    const bs=document.createElement("div"); bs.className="abtn"; d.appendChild(bs);
+    bs.appendChild(btn(".xlsx","ghost small",async()=>{
+      const st=await archGet(a.id); if(!st){alert("That survey could not be read back.");return;}
+      const keep=S; let bytes,nm;
+      try{ S=st; bytes=buildWorkbook(); nm=slug()+"_Condition_Survey.xlsx"; }
+      finally{ S=keep; }                       // never leave S pointing at the shelf
+      await saveFile(bytes,nm,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }));
+    bs.appendChild(btn(".json","ghost small",async()=>{
+      const st=await archGet(a.id); if(!st)return;
+      await saveFile(te.encode(JSON.stringify(st,null,1)),
+        (st.name||"survey").replace(/[^A-Za-z0-9]+/g,"_")+"_survey.json","application/json");
+    }));
+    bs.appendChild(btn("Open","ghost small",async()=>{
+      if(S.status==="running"||S.status==="paused"){
+        alert("End the road you are on before opening another."); return; }
+      if(!confirm("Open "+a.name+"? The road on screen is put away first."))return;
+      if(!await stowCurrent()) return;
+      const st=await archGet(a.id); if(!st){alert("That survey could not be read back.");return;}
+      S=st; await archDrop(a.id); after(); go("survey");
+    }));
+    bs.appendChild(btn("Delete","ghost small",async()=>{
+      if(!confirm("Delete "+a.name+" from this phone? Make sure it has reached the estimator."))return;
+      await archDrop(a.id); renderArch();
+    }));
+    host.appendChild(d);
+  });
 }
 </script>
 <script>
@@ -956,6 +1223,7 @@ function sampleState(){
     {ch:1500,type:"PR_CULVERT",family:"PC",cells:3,size:"1200",len:12,orient:"Right Angle",qty:"",note:"",photo:null},
     {ch:5000,type:"PR_CULVERT",family:"BC",cells:2,size:"3x3",len:12,orient:"Right Angle",qty:"",note:"",photo:null}];
   s.params.P_OH_Sub=6; s.params.P_OH_Base=9; s.params.P_SignsPerKm=2; s.params.P_RampsPerKm=0.25;
+  s.status="running"; s.startedAt=new Date().toISOString(); s.startCh=0;
   return s;
 }
 
@@ -1028,6 +1296,9 @@ function gpsStop(){
 $("gpsBtn").onclick=()=>{
   const b=$("gpsBtn");
   if(watch!==null){gpsStop();return;}
+  if(!running()){ gpsSay(S.status==="paused"
+      ? "the survey is paused — tap RESUME to start the GPS again"
+      : "tap START SURVEY before switching the GPS on",true); return; }
   if(!navigator.geolocation){b.textContent="No GPS";return;}
   b.textContent="GPS…"; gained=0; gpsReanchor();
   gpsSay("waiting for a fix — stand still in the open until it says LOCKED");
@@ -1103,6 +1374,9 @@ $("pPhoto").onchange=e=>{
   img.src=url;
 };
 $("addPt").onclick=()=>{
+  if(!running()){ alert(S.status==="paused"
+    ? "The survey is paused. Tap RESUME before recording anything."
+    : "Tap START SURVEY before recording anything."); return; }
   const t=$("pType").value;
   const p={ch:S.ch,type:t,family:"",cells:"",size:"",len:"",orient:"",qty:"",note:$("pNote").value,photo:photo,fix:gpsFix()};
   if(t==="PR_CULVERT"){p.family=$("pFamily").value;p.cells=+$("pCells").value;
@@ -1118,8 +1392,12 @@ $("addPt").onclick=()=>{
   .forEach(([id,k])=>{$(id).oninput=()=>{S[k]=$(id).value;S.sample=false;
     $("hRoad").textContent=S.name||"Untitled road";$("hCode").textContent=S.code||"";
     $("sampleTag").hidden=true;save();};});
-$("newRoad").onclick=()=>{ if(!confirm("Start a new road? The survey on this device will be replaced. Export first if you need it."))return;
-  S=blankState(); after(); };
+$("newRoad").onclick=async()=>{
+  if(S.status==="running"||S.status==="paused"){
+    alert("End the survey first. Tap END SURVEY at the top of the page."); return; }
+  if(!confirm("Start a new road? The road on screen is put away on the Export page first."))return;
+  if(!await stowCurrent()) return;
+  S=blankState(); askMode=null; after(); };
 $("loadSample").onclick=()=>{ if(!confirm("Load the Osubeng example? Anything recorded here will be replaced."))return;
   S=sampleState(); after(); };
 
@@ -1149,10 +1427,8 @@ $("dlXlsx").onclick=async()=>{ try{ await saveFile(buildWorkbook(),slug()+"_Cond
 $("dlJson").onclick=()=>saveFile(te.encode(JSON.stringify(S,null,1)),slug()+"_survey.json","application/json");
 
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-current",String(x===b)));
-  ["survey","points","setup","export"].forEach(v=>$("v-"+v).hidden=(v!==b.dataset.v));
-  if(b.dataset.v==="export") renderChecks();
-  window.scrollTo(0,0);
+  go(b.dataset.v);
+  if(b.dataset.v==="export"){ renderChecks(); renderArch(); }
 });
 addEventListener("resize",draw);
 
@@ -1160,7 +1436,16 @@ addEventListener("resize",draw);
   const saved=await load();
   S = saved || blankState();
   if(!S.params) S.params=Object.fromEntries(PARAMS.map(p=>[p[6],p[3]]));
-  if(!S.runs) S.runs=[]; if(!S.seq) S.seq=(Math.max(0,...S.runs.map(r=>r.id||0))+1);
+  if(!S.runs) S.runs=[]; if(!S.points) S.points=[];
+  if(!S.seq) S.seq=(Math.max(0,...S.runs.map(r=>r.id||0))+1);
+  /* a survey recorded before the lifecycle existed is treated as still running
+     if anything was recorded, so nobody loses a morning's work to a locked page */
+  if(!S.id) S.id="s"+Date.now().toString(36);
+  if(!S.status) S.status=(S.runs.length||S.points.length)?"running":"new";
+  if(!S.pauses) S.pauses=[];
+  if(S.startCh==null) S.startCh=0;
+  if(S.status==="running" && !S.startedAt) S.startedAt=new Date().toISOString();
+  await archLoad();
   renderAll();
   try{ if("serviceWorker" in navigator && location.protocol==="https:")
         navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){}
