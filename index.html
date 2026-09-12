@@ -68,6 +68,7 @@ input.chedit{width:5.2em;background:rgba(255,255,255,.14);border:1px solid rgba(
 .gpsline{font-family:var(--f-mono);font-size:11px;line-height:1.45;padding:0 2px 6px;
   opacity:.85;font-variant-numeric:tabular-nums}
 .gpsline .warn{color:#ffd28a}
+.vertag{display:block;font-family:var(--f-mono);font-size:10px;opacity:.7;margin-bottom:4px}
 #strip{height:34px;width:100%;display:block;margin-bottom:-1px}
 
 /* ---------- survey lifecycle bar ---------- */
@@ -363,6 +364,7 @@ button.act.end{background:var(--paper);border-color:var(--live);color:var(--live
   </main>
 
   <footer>
+    <span id="verTag" class="vertag"></span>
     Bespa Road Condition Survey App, for the Department of Feeder Roads. Works offline; everything is
     stored on this device until you export. Chainages are metres.
   </footer>
@@ -411,6 +413,12 @@ const PARAMS=[
  [41,"!","Pedestrian crossing factor",2,"m/km","","P_PedXF"]];
 
 /* ------------------------------------------------------------- persistence */
+/* The survey rule lives here and, for the Python agent, in bespa_survey.py.
+   Two copies drift. Every export carries this version so a loader can refuse
+   a file it was not built to read, instead of quietly mis-reading it.
+   SCHEMA changes only when the shape of the export changes. */
+const APP_VERSION="1.4.0";
+const EXPORT_SCHEMA=1;
 const KEY="bespa-survey-v3";
 let DB=null;
 function idb(){return new Promise(res=>{try{
@@ -667,6 +675,9 @@ function buildWorkbook(){
                     : S.status==="running"? "STILL RECORDING — INCOMPLETE, do not price this"
                     : "NOT STARTED"],
     ["Started",S.startedAt||""],["Ended",S.endedAt||""],
+    [],
+    ["BESPA_EXPORT_SCHEMA",EXPORT_SCHEMA],
+    ["BESPA_APP_VERSION",APP_VERSION],
     [],
     ["HOW TO LOAD THIS"],
     ["1","Open this file and the Master Estimator side by side."],
@@ -1424,7 +1435,9 @@ async function saveFile(bytes,name,mime){
 $("dlXlsx").onclick=async()=>{ try{ await saveFile(buildWorkbook(),slug()+"_Condition_Survey.xlsx",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); }
   catch(e){ alert("Export failed: "+e.message); } };
-$("dlJson").onclick=()=>saveFile(te.encode(JSON.stringify(S,null,1)),slug()+"_survey.json","application/json");
+$("dlJson").onclick=()=>saveFile(te.encode(JSON.stringify(
+  Object.assign({appVersion:APP_VERSION, exportSchema:EXPORT_SCHEMA}, S), null, 1)),
+  slug()+"_survey.json","application/json");
 
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
   go(b.dataset.v);
@@ -1446,6 +1459,7 @@ addEventListener("resize",draw);
   if(S.startCh==null) S.startCh=0;
   if(S.status==="running" && !S.startedAt) S.startedAt=new Date().toISOString();
   await archLoad();
+  $("verTag").textContent="version "+APP_VERSION;
   renderAll();
   try{ if("serviceWorker" in navigator && location.protocol==="https:")
         navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){}
