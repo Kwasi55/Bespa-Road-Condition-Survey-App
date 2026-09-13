@@ -291,6 +291,9 @@ button.act.end{background:var(--paper);border-color:var(--live);color:var(--live
             <label>Size<input type="text" id="pSize" placeholder="900 or 3x3"></label>
             <label>Length (m)<input type="number" id="pLen" step="0.5" min="0" value="10"></label>
             <label style="grid-column:1/-1">Orientation<select id="pOrient"></select></label>
+            <label>Water table<select id="pWT"></select></label>
+            <label>Channel width (m)<input type="number" id="pChanW" step="0.5" min="0" placeholder="bank to bank"></label>
+            <label style="grid-column:1/-1">Flood mark above bed (m)<input type="number" id="pFloodY" step="0.1" min="0" placeholder="debris or silt line"></label>
           </div>
           <label id="qtyWrap" hidden>Quantity<input type="number" id="pQty" step="0.1" min="0"></label>
           <label>Photo<input type="file" id="pPhoto" accept="image/*" capture="environment"></label>
@@ -378,16 +381,27 @@ const VEG=[["EB","Existing bush"],["GB","Grass bush"],["SB","Savannah bush"],["L
 const DITCH=[["","—"],["CL","CL  clean out"],["RE","RE  re-excavate"],["EC","EC  excavate new"]];
 const UD=[["","—"],["45","450"],["60","600"],["75","750"],["90","900"]];
 const COND=[["G","Good"],["F","Fair"],["P","Poor"],["VP","Very poor"],["NR","No road"]];
+const SURF=[["GRAV","Gravel"],["BIT","Bituminous"]];
+/* Potholing and cracking are distributed defects, not point features: the crew
+   records how bad a length is, and the factors in Form F turn a band into m2
+   and metres per 100 m. An isolated failure is simply a short run. */
+const BAND=[["","—"],["L","Light"],["M","Medium"],["S","Severe"]];
 const CONDCOL={G:"var(--g)",F:"var(--f)",P:"var(--p)",VP:"var(--vp)",NR:"var(--nr)"};
 const PTYPES=["PR_CULVERT","EX_CULVERT","JN_CULVERT","EX_BRIDGE","PR_BRIDGE","GULLY","TURNOUT_L","TURNOUT_R","PITCHING"];
 const QTY_TYPES={GULLY:"m³",TURNOUT_L:"m",TURNOUT_R:"m",PITCHING:"m²"};
-const RULES0=[["G","Good — shape and camber sound, light maintenance only","BLADE",null,null,null,null,null],
- ["F","Fair — camber lost in places, some potholing","RESHAPE",10,15,"Y","Y","Y"],
- ["P","Poor — badly deformed, potholed, camber gone","RESHAPE",15,15,"Y","Y","Y"],
- ["VP","Very poor — impassable in rain, gravel lost","SCARIFY",15,15,"Y","Y","Y"],
- ["NR","No road — new alignment or total reconstruction","SCARIFY",15,20,"Y","Y","Y"]];
+const RULES0=[
+ ["GRAV","G","Good — shape and camber sound, light maintenance only","BLADE",null,null,null,null,null,null],
+ ["GRAV","F","Fair — camber lost in places, some potholing","RESHAPE",null,10,15,"Y","Y","Y"],
+ ["GRAV","P","Poor — badly deformed, potholed, camber gone","RESHAPE",null,15,15,"Y","Y","Y"],
+ ["GRAV","VP","Very poor — impassable in rain, gravel lost","SCARIFY",null,15,15,"Y","Y","Y"],
+ ["GRAV","NR","No road — new alignment or total reconstruction","SCARIFY",null,15,20,"Y","Y","Y"],
+ ["BIT","G","Good — surface sound, hairline cracking at most","ROUTINE",null,null,null,null,null,null],
+ ["BIT","F","Fair — potholes and cracking, surface otherwise sound","PATCH+SEAL",null,null,null,null,null,null],
+ ["BIT","P","Poor — extensive cracking and potholing, shape lost","RECONSTRUCT","Y",15,15,"Y","Y","Y"],
+ ["BIT","VP","Very poor — surface broken up, base failed","RECONSTRUCT","Y",15,20,"Y","Y","Y"],
+ ["BIT","NR","No road — new alignment or total reconstruction","RECONSTRUCT","Y",15,20,"Y","Y","Y"]];
 const SECTIONS={5:"CROSS-SECTION",11:"PAVEMENT",16:"SURFACING DESIGN RATES",24:"HAULAGE DISTANCES",
-                29:"AGGREGATE YIELD FACTORS",34:"ROAD FURNITURE"};
+                29:"AGGREGATE YIELD FACTORS",34:"ROAD FURNITURE",43:"BITUMINOUS DEFECTS"};
 const PARAMS=[
  [6,"","Carriageway width",7,"m","","P_CW"],[7,"","Shoulder width (one side)",1,"m","Formation width = CW + 2×SW, computed","P_SW"],
  [8,"","Existing carriageway width",4,"m","","P_ExtCW"],[9,"","Width for primer seal",8,"m","","P_PrimeW"],
@@ -410,15 +424,21 @@ const PARAMS=[
  [36,"!","STOP line per km",5,"m/km","","P_StopPerKm"],[37,"!","Speed ramps per km",1,"nr/km","","P_RampsPerKm"],
  [38,"!","Lane separation line factor",0.6,"m/m","of sealed length","P_LaneLineF"],
  [39,"!","Centre line factor",0.4,"m/m","","P_CentreLnF"],[40,"!","Edge line factor",2,"m/m","both edges","P_EdgeLnF"],
- [41,"!","Pedestrian crossing factor",2,"m/km","","P_PedXF"]];
+ [41,"!","Pedestrian crossing factor",2,"m/km","","P_PedXF"],
+ [44,"!","Pothole patching, light",8,"m²/100m","Band L on a bituminous run","P_PotL"],
+ [45,"!","Pothole patching, medium",25,"m²/100m","Band M","P_PotM"],
+ [46,"!","Pothole patching, severe",60,"m²/100m","Band S","P_PotS"],
+ [47,"!","Crack sealing, light",30,"m/100m","Band L on a bituminous run","P_CrkL"],
+ [48,"!","Crack sealing, medium",90,"m/100m","Band M","P_CrkM"],
+ [49,"!","Crack sealing, severe",180,"m/100m","Band S","P_CrkS"]];
 
 /* ------------------------------------------------------------- persistence */
 /* The survey rule lives here and, for the Python agent, in bespa_survey.py.
    Two copies drift. Every export carries this version so a loader can refuse
    a file it was not built to read, instead of quietly mis-reading it.
    SCHEMA changes only when the shape of the export changes. */
-const APP_VERSION="1.4.0";
-const EXPORT_SCHEMA=1;
+const APP_VERSION="1.5.0";
+const EXPORT_SCHEMA=2;
 const KEY="bespa-survey-v3";
 let DB=null;
 function idb(){return new Promise(res=>{try{
@@ -513,6 +533,11 @@ const ITEMS=[
  ["ovrPrime","Primer seal (override)",      "sel",    "C", [["",""],["Y","Y"],["N","N"]]],
  ["ovrS1",  "First seal (override)",        "sel",    "C", [["",""],["Y","Y"],["N","N"]]],
  ["ovrS2",  "Second seal (override)",       "sel",    "C", [["",""],["Y","Y"],["N","N"]]],
+ ["surf",   "Surface",                      "code",   "C", SURF],
+ ["pot",    "Potholes",                     "sel",    "C", BAND],
+ ["potA",   "Pothole area (override)",      "hw",     "C", ["m²"]],
+ ["crk",    "Cracking",                     "sel",    "C", BAND],
+ ["crkL",   "Crack length (override)",      "hw",     "C", ["m"]],
 ];
 const ITEM=Object.fromEntries(ITEMS.map(i=>[i[0],{key:i[0],label:i[1],kind:i[2],form:i[3],opts:i[4]}]));
 const FORM_ITEMS={A:ITEMS.filter(i=>i[3]==="A").map(i=>i[0]),
@@ -683,8 +708,8 @@ function buildWorkbook(){
     ["1","Open this file and the Master Estimator side by side."],
     ["2","Take one sheet at a time and paste it into the sheet of THE SAME NAME. Each block starts at A5."],
     ["3","A_Corridor -> A_Corridor A5.  B_Drainage -> B_Drainage A5.  C_Pavement -> C_Pavement A5.  D_Points -> D_Points A5."],
-    ["4","Never paste whole rows or drag past column I on D_Points. Select only the block you can see."],
-    ["5","E_Rules rows 5-9, and the Value column of F_Road_Data."],
+    ["4","Never paste whole rows or drag past column L on D_Points. Select only the block you can see."],
+    ["5","E_Rules rows 5-14, and the Value column of F_Road_Data."],
     ["6","Type the road name, code, region and district on 00_Project. The road length is measured for you."],
     ["7","Press Ctrl+Alt+F9 to rebuild every formula, then save."],
     ["8","Read 90_Checks. All 20 tests must say OK before the bill is issued."],
@@ -700,7 +725,8 @@ function buildWorkbook(){
        "Trap. drain R","Kerb L","Kerb R","Scour checks","Scour spacing (m)","Ret. wall L",
        "Ret. wall R","Notes"],
     C:["From","To","Surface condition","Treatment (override)","Sub-base cm (ovr)","Base cm (ovr)",
-       "Prime (ovr)","Seal 1 (ovr)","Seal 2 (ovr)","Notes"]};
+       "Prime (ovr)","Seal 1 (ovr)","Seal 2 (ovr)","Surface","Potholes","Pothole m² (ovr)",
+       "Cracking","Crack m (ovr)","Notes"]};
   const title={A:"FORM A  —  CORRIDOR, CLEARING AND EARTHWORKS",
                B:"FORM B  —  DRAINAGE", C:"FORM C  —  PAVEMENT AND SURFACING"};
   const sheet={A:"A_Corridor",B:"B_Drainage",C:"C_Pavement"};
@@ -709,12 +735,14 @@ function buildWorkbook(){
       ...rowsFor(f).map(r=>[r.from,r.to,...r.cells,""])]});
   });
   sh.push({name:"D_Points",rows:[["FORM D  —  POINT ITEMS"],[],[],
-    ["Chainage","Type","Family","Cells","Size","Length (m)","Orientation","Quantity","Notes"],
+    ["Chainage","Type","Family","Cells","Size","Length (m)","Orientation","Quantity",
+     "Water table","Channel width (m)","Flood mark (m)","Notes"],
     ...S.points.slice().sort((a,b)=>a.ch-b.ch).map(p=>[p.ch,p.type,p.family||"",p.cells||"",
-      p.size||"",num(p.len),p.orient||"",num(p.qty),p.note||""])]});
+      p.size||"",num(p.len),p.orient||"",num(p.qty),p.wt||"",num(p.chanW),num(p.floodY),
+      p.note||""])]});
   sh.push({name:"E_Rules",rows:[["FORM E  —  TREATMENT RULES"],[],[],
-    ["Condition","What it looks like","Treatment","Sub-base (cm)","Base (cm)","Primer seal",
-     "First seal","Second seal"], ...S.rules]});
+    ["Surface","Condition","What it looks like","Treatment","Scarify bit. surface",
+     "Sub-base (cm)","Base (cm)","Primer seal","First seal","Second seal"], ...S.rules]});
   const F=[["FORM F  —  ROAD DATA"],
     ["Values copied into 00_Project. A ! marks a template figure not yet confirmed for this road."],[],
     ["Confirm?","Parameter","Value","Unit","Note","","Name"]];
@@ -1178,7 +1206,8 @@ function renderPointList(){
   host.innerHTML="";
   S.points.slice().sort((a,b)=>a.ch-b.ch).forEach(p=>{
     const d=document.createElement("div"); d.className="logrow";
-    const what=p.type==="PR_CULVERT"?(p.cells+"/"+p.size+" "+p.family+", "+p.len+" m "+p.orient)
+    const wtTag=p.wt?"  ·  WT "+p.wt:"";
+    const what=p.type==="PR_CULVERT"?(p.cells+"/"+p.size+" "+p.family+", "+p.len+" m "+p.orient+wtTag)
       :(p.qty!==""&&p.qty!=null?p.qty+" "+(QTY_TYPES[p.type]||""):"");
     d.innerHTML='<span class="rng">'+fmt(p.ch)+'</span><span class="desc">'+
       p.type.replace(/_/g," ")+(what?" · "+what:"")+'</span>'+
@@ -1191,12 +1220,13 @@ function renderSetup(){
   $("mName").value=S.name; $("mCode").value=S.code; $("mRegion").value=S.region;
   $("mDistrict").value=S.district; $("mBy").value=S.by; $("mDate").value=S.date;
   const t=$("rulesTable");
-  t.innerHTML='<tr><th>Cond</th><th>Treatment</th><th>Sub</th><th>Base</th><th>Pr</th><th>S1</th><th>S2</th></tr>';
+  t.innerHTML='<tr><th>Surf</th><th>Cond</th><th>Treatment</th><th>Scar</th><th>Sub</th>'+
+    '<th>Base</th><th>Pr</th><th>S1</th><th>S2</th></tr>';
   S.rules.forEach((r,i)=>{
     const tr=document.createElement("tr");
-    tr.innerHTML='<td>'+r[0]+'</td>'+[2,3,4,5,6,7].map(c=>
+    tr.innerHTML='<td>'+r[0]+'</td><td>'+r[1]+'</td>'+[3,4,5,6,7,8,9].map(c=>
       '<td><input data-r="'+i+'" data-c="'+c+'" value="'+(r[c]==null?"":r[c])+
-      '" style="min-height:38px;padding:5px 6px;font-size:14px" aria-label="'+r[0]+' column '+c+'"></td>').join("");
+      '" style="min-height:38px;padding:5px 6px;font-size:14px" aria-label="'+r[0]+' '+r[1]+' column '+c+'"></td>').join("");
     t.appendChild(tr);
   });
   t.querySelectorAll("input").forEach(inp=>inp.onchange=()=>{
@@ -1368,6 +1398,10 @@ opt($("pType"),PTYPES.map(t=>[t,t.replace(/_/g," ")]),"PR_CULVERT");
 opt($("pFamily"),[["PC","PC  pipe"],["BC","BC  box"],["UC","UC  U-culvert"]],"PC");
 opt($("pCells"),[["1","1"],["2","2"],["3","3"],["4","4"]],"1");
 opt($("pOrient"),[["Right Angle","Right Angle"],["Skew","Skew"]],"Right Angle");
+/* Buoyancy needs the water table; scour needs the flood section. Both are
+   readings the crew can take standing at the crossing, and neither can be
+   recovered afterwards from the office. */
+opt($("pWT"),[["","—"],["H","High — at or above soffit"],["S","Seasonal"],["L","Low"]],"");
 function ptMode(){const t=$("pType").value;
   $("culvFields").hidden=(t!=="PR_CULVERT");
   $("qtyWrap").hidden=!QTY_TYPES[t];
@@ -1392,11 +1426,14 @@ $("addPt").onclick=()=>{
   const p={ch:S.ch,type:t,family:"",cells:"",size:"",len:"",orient:"",qty:"",note:$("pNote").value,photo:photo,fix:gpsFix()};
   if(t==="PR_CULVERT"){p.family=$("pFamily").value;p.cells=+$("pCells").value;
     p.size=$("pSize").value.trim();p.len=num($("pLen").value);p.orient=$("pOrient").value;
-    if(!p.size){alert("A proposed culvert needs a size — the diameter in mm for a pipe, or span x rise for a box or U-culvert.");return;}}
+    p.wt=$("pWT").value; p.chanW=num($("pChanW").value); p.floodY=num($("pFloodY").value);
+    if(!p.size){alert("A proposed culvert needs a size — the diameter in mm for a pipe, or span x rise for a box or U-culvert.");return;}
+    if(p.family==="BC" && !p.wt){alert("A proposed box culvert needs the water table — high, seasonal or low. It decides whether the box has to be held down against flotation, and it cannot be judged from the office.");return;}}
   if(QTY_TYPES[t]){p.qty=num($("pQty").value);
     if(p.qty===""){alert("A "+t.replace(/_/g," ").toLowerCase()+" needs a quantity in "+QTY_TYPES[t]+".");return;}}
   S.points.push(p); photo=null; $("pPhoto").value=""; $("pPreview").hidden=true;
-  $("pNote").value=""; $("pQty").value=""; $("pSize").value=""; after();
+  $("pNote").value=""; $("pQty").value=""; $("pSize").value="";
+  $("pChanW").value=""; $("pFloodY").value=""; after();
 };
 
 [["mName","name"],["mCode","code"],["mRegion","region"],["mDistrict","district"],["mBy","by"],["mDate","date"]]
