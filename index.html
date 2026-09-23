@@ -221,6 +221,10 @@ footer{padding:16px 14px 26px;color:var(--faint);font-size:11px;line-height:1.6;
 .hwl{flex:1;min-width:104px;font-size:11px}
 .hwl input{min-height:44px}
 .hwb{display:flex;gap:6px}
+.item.locked{opacity:.62}
+.locknote{margin-top:8px;font-size:12px;line-height:1.35;color:var(--dim);
+  border-left:3px solid var(--live);padding-left:8px}
+.ictl .hwb{margin-top:8px}
 .iend{display:flex;justify-content:flex-end}
 button.act.end{background:var(--paper);border-color:var(--live);color:var(--live)}
 .logrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
@@ -437,7 +441,7 @@ const PARAMS=[
    Two copies drift. Every export carries this version so a loader can refuse
    a file it was not built to read, instead of quietly mis-reading it.
    SCHEMA changes only when the shape of the export changes. */
-const APP_VERSION="1.5.0";
+const APP_VERSION="1.6.0";
 const EXPORT_SCHEMA=2;
 const KEY="bespa-survey-v3";
 let DB=null;
@@ -510,6 +514,7 @@ function opt(sel,list,val){sel.innerHTML="";list.forEach(([v,t])=>{const o=docum
    switching it off stamps an end. Nothing else on the road is disturbed.   */
 const ITEMS=[
  // key      form label                     kind      form  extra
+ ["redesign","To be redesigned (Road Design app)","flag",  "A"],
  ["town",   "Township",                     "flag",   "A"],
  ["veg",    "Vegetation",                   "code",   "A", VEG],
  ["raise",  "Raise road in low-lying area", "hw",     "A", ["Fill (cm)"]],
@@ -533,7 +538,7 @@ const ITEMS=[
  ["ovrPrime","Primer seal (override)",      "sel",    "C", [["",""],["Y","Y"],["N","N"]]],
  ["ovrS1",  "First seal (override)",        "sel",    "C", [["",""],["Y","Y"],["N","N"]]],
  ["ovrS2",  "Second seal (override)",       "sel",    "C", [["",""],["Y","Y"],["N","N"]]],
- ["surf",   "Surface",                      "code",   "C", SURF],
+ ["surf",   "Surface",                      "codeb",  "C", SURF],
  ["pot",    "Potholes",                     "sel",    "C", BAND],
  ["potA",   "Pothole area (override)",      "hw",     "C", ["m²"]],
  ["crk",    "Cracking",                     "sel",    "C", BAND],
@@ -543,6 +548,16 @@ const ITEM=Object.fromEntries(ITEMS.map(i=>[i[0],{key:i[0],label:i[1],kind:i[2],
 const FORM_ITEMS={A:ITEMS.filter(i=>i[3]==="A").map(i=>i[0]),
                   B:ITEMS.filter(i=>i[3]==="B").map(i=>i[0]),
                   C:ITEMS.filter(i=>i[3]==="C").map(i=>i[0])};
+// "redesign" is a marker the surveyor sets, not a survey column: the Form A
+// block must keep its ten columns, so it is excluded from the export blocks
+// and reported on its own sheet instead.
+const NO_EXPORT=new Set(["redesign"]);
+const EXPORT_ITEMS={A:FORM_ITEMS.A.filter(k=>!NO_EXPORT.has(k)),
+                    B:FORM_ITEMS.B.filter(k=>!NO_EXPORT.has(k)),
+                    C:FORM_ITEMS.C.filter(k=>!NO_EXPORT.has(k))};
+// earthworks the Road Design app supplies for a designed stretch
+const EARTH=["raise","cut","fillw"];
+const inRedesign=ch=>valueAt("redesign",ch)!==null;
 // a lined drain masks the V-ditch on the same side
 const MASKS={ditchL:["udL","trapL"], ditchR:["udR","trapR"]};
 
@@ -566,6 +581,9 @@ let S=blankState();
 const openRun  = k => S.runs.find(r=>r.item===k && r.to===null) || null;
 const runsOf   = k => S.runs.filter(r=>r.item===k).sort((a,b)=>a.from-b.from);
 function startRun(k,val){
+  // marking a stretch for redesign closes any earthworks still running: the Road
+  // Design app measures them from here, and two sources would bill the same work
+  if(k==="redesign" && !openRun(k)) EARTH.forEach(e=>{ if(openRun(e)) stopRun(e); });
   const o=openRun(k);
   if(o){ if(JSON.stringify(o.val)===JSON.stringify(val)) return o;   // no change
          if(S.ch<=o.from){ o.val=val; return o; }                    // correct in place
@@ -716,6 +734,7 @@ function buildWorkbook(){
     ["9","Tests 11 and 14 exist because a block pasted into the wrong sheet reports nothing: the bill simply comes up short."],
     [],
     ["Chainages are in METRES."],
+    ["A G_Design sheet, if present, lists the stretches marked for redesign. It is a note only: their earthworks come from the Road Design app, so Form A leaves them blank."],
     ["Where a concrete U-drain or trapezoidal drain runs, the V-ditch on that side is suppressed for that length and resumes after it."],
     ["This file records what was seen. It is not an estimate and carries no rates."]]});
   const head={
@@ -730,9 +749,12 @@ function buildWorkbook(){
   const title={A:"FORM A  —  CORRIDOR, CLEARING AND EARTHWORKS",
                B:"FORM B  —  DRAINAGE", C:"FORM C  —  PAVEMENT AND SURFACING"};
   const sheet={A:"A_Corridor",B:"B_Drainage",C:"C_Pavement"};
+  const dspans=spans("redesign");
+  const dnote=(a,b)=>dspans.some(x=>x.from<b&&a<x.to)
+    ? "To be redesigned - earthworks come from the Road Design app" : "";
   ["A","B","C"].forEach(f=>{
     sh.push({name:sheet[f],rows:[[title[f]],[],[],head[f],
-      ...rowsFor(f).map(r=>[r.from,r.to,...r.cells,""])]});
+      ...rowsFor(f).map(r=>[r.from,r.to,...r.cells,f==="A"?dnote(r.from,r.to):""])]});
   });
   sh.push({name:"D_Points",rows:[["FORM D  —  POINT ITEMS"],[],[],
     ["Chainage","Type","Family","Cells","Size","Length (m)","Orientation","Quantity",
@@ -750,6 +772,13 @@ function buildWorkbook(){
   for(const k in SECTIONS) F[Number(k)-1]=[SECTIONS[k]];
   PARAMS.forEach(p=>{F[p[0]-1]=[p[1],p[2],S.params[p[6]],p[4],p[5],"",p[6]];});
   sh.push({name:"F_Road_Data",rows:F});
+  if(dspans.length) sh.push({name:"G_Design",rows:[
+    ["SECTIONS MARKED FOR REDESIGN"],
+    ["A note for the estimator - do NOT paste this sheet. Raise, cut to widen and fill to"],
+    ["widen were left blank over these stretches: the Road Design app measures them."],
+    ["From","To","Length (m)","Note"],
+    ...dspans.map(x=>[x.from,x.to,x.to-x.from,
+      "Earthworks from the Road Design app; clearing and drainage still surveyed"])]});
   return xlsx(sh);
 }
 </script>
@@ -777,7 +806,7 @@ function cellFor(k,ch){
   return [v];
 }
 function rowsFor(form){
-  const keys=FORM_ITEMS[form], pts=changePoints(keys), out=[];
+  const keys=EXPORT_ITEMS[form], pts=changePoints(keys), out=[];
   for(let i=0;i<pts.length-1;i++){
     const a=pts[i], b=pts[i+1];
     if(b<=a) continue;
@@ -826,9 +855,11 @@ function labelVal(k,v){
 }
 
 /* ------------------------------------------------------------ item cards */
+const ARM={};                       // a chosen value waiting for "Start here"
 function itemCard(k){
   const it=ITEM[k], o=openRun(k), [txt,cls]=stateText(k);
-  const d=document.createElement("div"); d.className="item"+(o?" running":"");
+  const locked = EARTH.includes(k) && inRedesign(S.ch);
+  const d=document.createElement("div"); d.className="item"+(o?" running":"")+(locked?" locked":"");
   let ctl="";
   if(it.kind==="flag"){
     ctl='<button type="button" class="act small'+(o?" end":"")+'" data-a="flag">'+
@@ -837,6 +868,13 @@ function itemCard(k){
     ctl='<div class="chips">'+it.opts.map(([v,t])=>
       '<button type="button" class="chip" data-a="code" data-v="'+esc2(v)+'" aria-pressed="'+
       (o&&o.val===v)+'"><span class="k">'+esc2(v)+'</span>'+esc2(t)+'</button>').join("")+'</div>';
+  }else if(it.kind==="codeb"){        // choose the value, then stamp where it starts
+    const armed = (k in ARM) ? ARM[k] : (o?o.val:null);
+    ctl='<div class="chips">'+it.opts.map(([v,t])=>
+      '<button type="button" class="chip" data-a="arm" data-v="'+esc2(v)+'" aria-pressed="'+
+      (armed===v)+'"><span class="k">'+esc2(v)+'</span>'+esc2(t)+'</button>').join("")+'</div>'+
+      '<div class="hwb"><button type="button" class="act small" data-a="startc"'+
+      (armed===null?" disabled":"")+'>'+(o?"Change from here":"Start here")+'</button></div>';
   }else if(it.kind==="sel"){
     ctl='<select data-a="sel">'+it.opts.map(([v,t])=>
       '<option value="'+esc2(v)+'"'+((o&&String(o.val)===String(v))?" selected":"")+'>'+
@@ -851,12 +889,21 @@ function itemCard(k){
   const endBtn = (o && it.kind!=="flag")
     ? '<div class="iend"><button type="button" class="act end small" data-a="stop">End here</button></div>'
     : "";
+  const lockNote = locked
+    ? '<div class="locknote">This stretch is marked for redesign \u2014 the Road Design app supplies its earthworks.</div>'
+    : "";
   d.innerHTML='<div class="itop"><span class="ilabel">'+esc2(it.label)+'</span>'+
-    '<span class="istate '+cls+'">'+esc2(txt)+'</span></div><div class="ictl">'+ctl+'</div>'+endBtn;
+    '<span class="istate '+cls+'">'+esc2(locked?"from the Road Design app":txt)+'</span></div>'+
+    '<div class="ictl">'+ctl+'</div>'+lockNote+endBtn;
   d.querySelectorAll("[data-a]").forEach(el=>{
     const a=el.dataset.a;
-    if(!running()){ el.disabled=true; return; }
+    if(!running()||locked){ el.disabled=true; return; }
     if(a==="flag") el.onclick=()=>{ openRun(k)?stopRun(k):startRun(k,true); after(); };
+    if(a==="arm")  el.onclick=()=>{ ARM[k]=el.dataset.v; after(); };
+    if(a==="startc") el.onclick=()=>{
+      const v=(k in ARM)?ARM[k]:(o?o.val:null);
+      if(v===null){ alert("Choose the surface first, then tap Start here."); return; }
+      startRun(k,v); delete ARM[k]; after(); };
     if(a==="code") el.onclick=()=>{ startRun(k,el.dataset.v); after(); };
     if(a==="sel")  el.onchange=()=>{ const v=el.value;
       if(v==="") stopRun(k); else startRun(k, isNaN(+v)||v===""?v:+v); after(); };
@@ -958,6 +1005,18 @@ function checkList(){
   });
   add("ok", clash? clash+" span(s) where a lined drain masks the V-ditch — the ditch is suppressed there and resumes after."
     : "No drain conflicts: one drainage type per side at every chainage.");
+
+  const dsp=spans("redesign");
+  if(dsp.length){
+    const dl=dsp.reduce((t,x)=>t+(x.to-x.from),0);
+    add("ok",(dl/1000).toFixed(3)+" km marked for redesign - its earthworks come from the Road Design app, "+
+        "and Form A is left blank there.");
+    let dbl=0;
+    dsp.forEach(x=>changePoints(EARTH).forEach(ch=>{
+      if(ch>=x.from && ch<x.to && EARTH.some(e=>valueAt(e,ch)!==null)) dbl++; }));
+    if(dbl) add("stop","Earthworks recorded inside a stretch marked for redesign - the design app measures "+
+      "the same work, so the bill would count it twice. Delete those runs in the change log.");
+  }
 
   const open=S.runs.filter(r=>r.to===null);
   if(open.length) add("warn", open.length+" item(s) still running — they will be closed at "+
