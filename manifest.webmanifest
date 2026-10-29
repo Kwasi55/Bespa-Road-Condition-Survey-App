@@ -1,13 +1,13 @@
 {
   "name": "Bespa Road Condition Survey App",
   "short_name": "Bespa Survey",
-  "start_url": "./",
+  "start_url": "./bespa-survey.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1B3A5C",
   "theme_color": "#1B3A5C",
-  "description": "Field capture for Department of Feeder Roads condition surveys. Works offline.",
+  "description": "Field capture for feeder road condition surveys. Works offline.",
   "icons": [
     {
       "src": "icon.png",
